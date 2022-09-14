@@ -1,0 +1,97 @@
+<div class="alert alert-danger" *ngIf="error">
+  {{ error }}
+</div>
+
+<ng-container *ngIf="!isLoading; else loadingTemplate">
+  <h1 class="display-6" *ngIf="!document.id">New document</h1>
+  <h1 class="display-6" *ngIf="document.id">Document editation <sup class="text-muted text-sm">{{document.id}}</sup></h1>
+
+  <div class="mb-3" *ngIf="document.id">
+    <label for="title" class="form-label">Document ID</label>
+    <input
+      type="text"
+      id="title"
+      class="form-control"
+      [value]="document.id"
+      aria-describedby="idHelp"
+      disabled
+    />
+    <div id="idHelp" class="form-text">Keep ID and the Write Access Token stored for future find and edit the document.</div>
+  </div>
+
+  <div class="mb-3">
+    <label for="title" class="form-label">Title</label>
+    <input
+      type="text"
+      id="title"
+      class="form-control"
+      [(ngModel)]="document.title"
+      [ngModelOptions]="{ standalone: true }"
+      aria-describedby="titleHelp"
+    />
+    <div id="titleHelp" class="form-text">Internal value, just for better understanding, what you are looking for.</div>
+  </div>
+
+  <div class="mb-3">
+    <label for="contents" class="form-label">JSON Document</label>
+    <textarea
+      id="contents"
+      class="form-control"
+      [(ngModel)]="document.contents"
+      [ngModelOptions]="{ standalone: true }"
+      aria-describedby="contentsHelp"
+      rows="20"
+    ></textarea>
+    <div id="contentsHelp" class="form-text">Document - JSON contents.</div>
+  </div>
+
+  <div class="mb-1 form-check">
+    <input
+    type="checkbox"
+    id="schema"
+      class="form-check-input"
+      [(ngModel)]="schemaEnabled"
+      [ngModelOptions]="{ standalone: true }"
+    />
+    <label class="form-check-label" for="schema">
+      Vaditate against the schema
+      <span class="text-danger text-sm" *ngIf="!schemaEnabled && document.schema">&nbsp; This schema will be removed on save.</span>
+    </label>
+  </div>
+
+  <div class="mb-3">
+    <textarea
+      *ngIf="schemaEnabled || document.schema"
+      id="schema"
+      class="form-control"
+      [class.bg-light]="!schemaEnabled"
+      [class.text-muted]="!schemaEnabled"
+      [(ngModel)]="document.schema"
+      [ngModelOptions]="{ standalone: true }"
+      aria-describedby="schemaHelp"
+      rows="10"
+    ></textarea>
+    <div id="schemaHelp" class="form-text">If schema defined, then document is validated agains it on every document save.</div>
+  </div>
+
+
+  <div class="my-5">
+    <label for="write_access_token" class="form-label">Write Access token</label>
+    <input type="text" class="form-control" id="write_access_token" [(ngModel)]="document.write_access_token" [ngModelOptions]="{ standalone: true }" aria-describedby="writeAccessTokenHelp" minlength="12" />
+    <div id="writeAccessTokenHelp" class="form-text">Enter any string during document creation and store it somewhere in private. It will be required for grand every document update.</div>
+  </div>
+
+
+  <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()" [disabled]="document.write_access_token.length < 3">Save</button>
+
+  <div class="alert alert-info my-4" *ngIf="document.id">
+    <div class="panel-body text-center">
+      <h6>JSON document is available on API URL:</h6>
+      <code>{{getApiUrl(document.id)}}</code>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #loadingTemplate>
+  <h1>Working ...</h1>
+</ng-template>

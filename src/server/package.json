@@ -1,0 +1,9 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "app.ts",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node -r ts-node/register --expose-gc --inspect=9229 ."
+  }
+}

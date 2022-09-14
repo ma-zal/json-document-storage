@@ -1,0 +1,34 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Run & Debug",
+            "args": ["app.ts"],
+            // Start with correct dir
+            "cwd": "${workspaceRoot}/src/server",
+            // Parameters for correct debugging of TS files
+            "runtimeArgs": ["-r", "ts-node/register"],
+            "sourceMaps": true,
+            "protocol": "inspector",
+            // "internalConsoleOptions": "openOnSessionStart",
+            "env": {
+                "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+                "DEBUG": "app:*:debug"
+            }
+        },
+        {
+            "name": "Attach Debugger",
+            "port": 9229,
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        }        
+    ]
+} 
