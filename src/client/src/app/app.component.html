@@ -1,8 +1,16 @@
-<nav class="navbar bg-light mb-4">
+<nav class="navbar navbar-dark bg-dark mb-4">
   <div class="container-fluid">
     <a class="navbar-brand" routerLink="/">JSON Document Storage Management</a>
+    <ul class="navbar-nav ms-auto mb-2 mb-lg-0 me-4">
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">browse</a>
+      </li>
+    </ul>    
+
+    <button class="btn btn-success me-2" type="button" routerLink="/document">Create</button>
   </div>
 </nav>
+
 <div class="container">
   <router-outlet></router-outlet>
 </div>  
