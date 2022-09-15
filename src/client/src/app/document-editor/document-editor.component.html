@@ -36,7 +36,7 @@
     <label for="contents" class="form-label">JSON Document</label>
     <textarea
       id="contents"
-      class="form-control"
+      class="form-control text-code"
       [(ngModel)]="document.contents"
       [ngModelOptions]="{ standalone: true }"
       aria-describedby="contentsHelp"
@@ -63,7 +63,7 @@
     <textarea
       *ngIf="schemaEnabled || document.schema"
       id="schema"
-      class="form-control"
+      class="form-control text-code"
       [class.bg-light]="!schemaEnabled"
       [class.text-muted]="!schemaEnabled"
       [(ngModel)]="document.schema"
@@ -78,11 +78,11 @@
   <div class="my-5">
     <label for="write_access_token" class="form-label">Write Access token</label>
     <input type="text" class="form-control" id="write_access_token" [(ngModel)]="document.write_access_token" [ngModelOptions]="{ standalone: true }" aria-describedby="writeAccessTokenHelp" minlength="12" />
-    <div id="writeAccessTokenHelp" class="form-text">Enter any string during document creation and store it somewhere in private. It will be required for grand every document update.</div>
+    <div id="writeAccessTokenHelp" class="form-text">Enter any string during document creation and store it somewhere in private. It will be required for grand every document update. If kept empty, then document can be updated without by anybody without any authorization.</div>
   </div>
 
 
-  <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()" [disabled]="document.write_access_token.length < 3">Save</button>
+  <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()">Save</button>
 
   <div class="alert alert-info my-4" *ngIf="document.id">
     <div class="panel-body text-center">
