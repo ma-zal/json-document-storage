@@ -18,14 +18,18 @@
     "importHelpers": true,
     "target": "es2020",
     "module": "es2020",
+    "allowJs": true, // For import of URI of monaco-editor
+    "resolveJsonModule": true, // For import JSON with JSON schema definition
     "lib": [
       "es2020",
       "dom"
     ],
     "paths": {
       "typeorm": ["./src/shim/typeorm.ts"],
+      "@common/*": ["../common/*"],
       "@server/*": ["../server/*"]
-    }    
+    },
+    "typeRoots": ["../..node_modules/@types", "./@types"]
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

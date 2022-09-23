@@ -1,21 +1,26 @@
-<div class="alert alert-danger" *ngIf="error">
+<ng-container *ngIf="!isLoading; else loadingTemplate">
+  <!-- Save button -->
+  <div class="my-2 float-end">
+    <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()">Save</button>
+  </div>
+
+  <!-- Header -->
+  <h1 class="display-6" *ngIf="!document.id">New document</h1>
+  <h1 class="display-6" *ngIf="document.id">
+    Document editation
+  </h1>
+</ng-container>
+
+<div class="alert alert-danger my-4" *ngIf="error">
+  <h4>Error - Something went wrong</h4>
   {{ error }}
 </div>
 
-<ng-container *ngIf="!isLoading; else loadingTemplate">
-  <h1 class="display-6" *ngIf="!document.id">New document</h1>
-  <h1 class="display-6" *ngIf="document.id">Document editation <sup class="text-muted text-sm">{{document.id}}</sup></h1>
+<ng-container *ngIf="!isLoading">
 
   <div class="mb-3" *ngIf="document.id">
     <label for="title" class="form-label">Document ID</label>
-    <input
-      type="text"
-      id="title"
-      class="form-control"
-      [value]="document.id"
-      aria-describedby="idHelp"
-      disabled
-    />
+    <input type="text" id="title" class="form-control" [value]="document.id" aria-describedby="idHelp" disabled />
     <div id="idHelp" class="form-text">Keep ID and the Write Access Token stored for future find and edit the document.</div>
   </div>
 
@@ -29,67 +34,94 @@
       [ngModelOptions]="{ standalone: true }"
       aria-describedby="titleHelp"
     />
-    <div id="titleHelp" class="form-text">Internal value, just for better understanding, what you are looking for.</div>
+    <div id="titleHelp" class="form-text">Just for better understanding, what you are looking for.</div>
   </div>
 
-  <div class="mb-3">
-    <label for="contents" class="form-label">JSON Document</label>
-    <textarea
-      id="contents"
-      class="form-control text-code"
-      [(ngModel)]="document.contents"
+  <!-- TODO migrate into ng-bootstrap (but it is not ready for Angular 14 yet) -->
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="uiTabIndex === 0" (click)="applySchemaFromEditor();uiTabIndex = 0;">Document Contents</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="uiTabIndex === 1" (click)="uiTabIndex = 1">JSON Validation Shema</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="uiTabIndex === 2" (click)="uiTabIndex = 2">Notes</a>
+    </li>
+  </ul>
+
+  <!-- Contents Editor-->
+  <div class="mb-3" *ngIf="uiTabIndex === 0">
+    <ngx-monaco-editor
+      class="code-editor"
+      [options]="editorOptions"
+      [model]="contentsModel"
+      [(ngModel)]="contentsModel.value"
       [ngModelOptions]="{ standalone: true }"
-      aria-describedby="contentsHelp"
-      rows="20"
-    ></textarea>
-    <div id="contentsHelp" class="form-text">Document - JSON contents.</div>
+      (onInit)="onMonacoInit($event)"
+    ></ngx-monaco-editor>
   </div>
 
-  <div class="mb-1 form-check">
-    <input
-    type="checkbox"
-    id="schema"
-      class="form-check-input"
-      [(ngModel)]="schemaEnabled"
+  <!-- Schema editor -->
+  <div class="mb-3" *ngIf="uiTabIndex === 1">
+    <ngx-monaco-editor
+      class="code-editor"
+      [options]="editorOptions"
+      [model]="schemaModel"
+      [(ngModel)]="schemaModel.value"
       [ngModelOptions]="{ standalone: true }"
-    />
-    <label class="form-check-label" for="schema">
-      Vaditate against the schema
-      <span class="text-danger text-sm" *ngIf="!schemaEnabled && document.schema">&nbsp; This schema will be removed on save.</span>
-    </label>
-  </div>
+    ></ngx-monaco-editor>
 
-  <div class="mb-3">
-    <textarea
-      *ngIf="schemaEnabled || document.schema"
-      id="schema"
-      class="form-control text-code"
-      [class.bg-light]="!schemaEnabled"
-      [class.text-muted]="!schemaEnabled"
-      [(ngModel)]="document.schema"
-      [ngModelOptions]="{ standalone: true }"
-      aria-describedby="schemaHelp"
-      rows="10"
-    ></textarea>
-    <div id="schemaHelp" class="form-text">If schema defined, then document is validated agains it on every document save.</div>
-  </div>
-
-
-  <div class="my-5">
-    <label for="write_access_token" class="form-label">Write Access token</label>
-    <input type="text" class="form-control" id="write_access_token" [(ngModel)]="document.write_access_token" [ngModelOptions]="{ standalone: true }" aria-describedby="writeAccessTokenHelp" minlength="12" />
-    <div id="writeAccessTokenHelp" class="form-text">Enter any string during document creation and store it somewhere in private. It will be required for grand every document update. If kept empty, then document can be updated without by anybody without any authorization.</div>
-  </div>
-
-
-  <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()">Save</button>
-
-  <div class="alert alert-info my-4" *ngIf="document.id">
-    <div class="panel-body text-center">
-      <h6>JSON document is available on API URL:</h6>
-      <code>{{getApiUrl(document.id)}}</code>
+    <div class="form-text my-0">
+      Optional.<br />
+      Note:
+      If schema entered, then document contents is validated agains it during editation and on save.
+      If no schema entered, then document contents can have any non-limited structure.
     </div>
   </div>
+
+  <!-- Notes -->
+  <div class="mb-3" *ngIf="uiTabIndex === 2">
+    <textarea
+      class="form-control" rows="16"
+      [(ngModel)]="document.notes"
+      [ngModelOptions]="{ standalone: true }"
+    ></textarea>
+  </div>
+
+
+  <div class="my-3">
+    <label for="write_access_token" class="form-label">Write Access Token</label>
+    <input
+      type="text"
+      class="form-control"
+      id="write_access_token"
+      [(ngModel)]="document.write_access_token"
+      [ngModelOptions]="{ standalone: true }"
+      aria-describedby="writeAccessTokenHelp"
+      minlength="12"
+    />
+    <div id="writeAccessTokenHelp" class="form-text">
+      Enter any string during document creation and store it in private. It is required to grand any document
+      update.
+      <br />
+      If kept empty, then document can be updated without by anybody without any authorization.
+    </div>
+  </div>
+
+  <!-- Save button (bottom) -->
+  <div class="mb-3 text-end">
+    <button type="button" class="btn btn-lg btn-primary" (click)="save()">Save</button>
+  </div>
+
+  <!-- Info about API endpoint -->
+  <div class="alert alert-info my-5" *ngIf="document.id">
+    <div class="panel-body text-center">
+      <h6>JSON document is available on API URL:</h6>
+      <code>{{ getApiUrl(document.id) }}</code>
+    </div>
+  </div>
+
 </ng-container>
 
 <ng-template #loadingTemplate>

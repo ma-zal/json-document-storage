@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { parseDocument } from '@common/document-parse';
 import { db } from '../db';
 import { JsonDocumentDbEntity, JsonDocumentToSave, JsonPublicDocument } from '../db/document';
 import { validateUuid } from '../utils';
@@ -13,7 +14,8 @@ export async function upsertDocumentHttp(req: Request, res: Response) {
     const document: JsonDocumentToSave = {
       id: req.body.id,
       title: req.body.title,
-      contents: req.body.contents,
+      notes: req.body.notes,
+      contents_raw: req.body.contents_raw,
       schema: req.body.schema,
       write_access_token: req.body.write_access_token,
     }
@@ -50,6 +52,9 @@ export async function upsertDocument(document: JsonDocumentToSave): Promise<Json
     // }
   }
 
+  // Parse document
+  const contents = parseDocument(document.contents_raw, document.schema);
+
   if (!document.id) {
     document.id = uuidv4();
   }
@@ -57,7 +62,9 @@ export async function upsertDocument(document: JsonDocumentToSave): Promise<Json
   await db.getRepository(JsonDocumentDbEntity).upsert({
     id: document.id,
     title: document.title,
-    contents: document.contents,
+    notes: document.notes,
+    contents_raw: document.contents_raw,
+    contents: contents,
     schema: document.schema,
     write_access_token: document.write_access_token,
     updated_at: new Date(),

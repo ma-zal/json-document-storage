@@ -26,7 +26,9 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              { "glob": "**/*", "input": "../../node_modules/monaco-editor/min/vs", "output": "./assets/monaco/min/vs" },
+              { "glob": "**/*", "input": "../../node_modules/monaco-editor/min-maps/vs", "output": "./assets/monaco/min-maps/vs" }
             ],
             "styles": [
               "../../node_modules/bootstrap/dist/css/bootstrap.min.css",
@@ -98,7 +100,9 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              { "glob": "**/*", "input": "../../node_modules/monaco-editor/min-maps/vs", "output": "./assets/monaco/min-maps/vs" },
+              { "glob": "**/*", "input": "../../node_modules/monaco-editor/min/vs", "output": "./assets/monaco/min/vs" }
             ],
             "styles": [
               "../../node_modules/bootstrap/dist/css/bootstrap.min.css",

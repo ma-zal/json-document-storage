@@ -57,4 +57,5 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 
 })().catch((err: any) => {
   console.error('Main() error: ', err.message);
+  console.error('Main() stack: ', err.stack);
 });
