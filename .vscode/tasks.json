@@ -1,0 +1,74 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TSC: Find all server TypeScript problems",
+      "type": "shell",
+      "command": "${workspaceRoot}/node_modules/.bin/tsc",
+      "windows": {
+        "command": "${workspaceRoot}\\node_modules\\.bin\\tsc.cmd",
+      },
+      "args": ["-p", ".", "--noEmit"],
+      "options": {
+        "cwd": "${workspaceRoot}/src/server",
+      },
+      "problemMatcher": {
+        "base": "$tsc",
+        "fileLocation": ["relative", "${workspaceRoot}/src/server"],
+      },
+      "presentation": {
+        "reveal": "silent",
+        "revealProblems": "onProblem",
+        "panel": "new",
+      },
+      "runOptions": {
+        "runOn": "folderOpen",
+        "instanceLimit": 1,
+      },
+    },
+    {
+      "label": "TSC: Watch for all server Typescript problems",
+      "command": "${workspaceRoot}/node_modules/.bin/tsc",
+      "windows": {
+        "command": "${workspaceRoot}\\node_modules\\.bin\\tsc.cmd",
+      },
+      "type": "shell",
+      "args": ["-w", "-p", ".", "--noEmit"],
+      "presentation": {
+        "reveal": "always",
+      },
+      "options": {
+        "cwd": "${workspaceRoot}/src/server",
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "base": "$tsc-watch",
+        "fileLocation": ["relative", "${workspaceRoot}/src/server"],
+      }
+    },
+    /* NOT IMPLEMENTED YET
+    {
+      "label": "ESLINT: Check for all problems",
+      "command": "eslint",
+      "type": "shell",
+      "args": ["-c", "./src/.eslintrc.json", "${workspaceRoot}/src/**" + "/*.ts"],
+      "options": {
+        "cwd": "${workspaceRoot}",
+      },
+      "problemMatcher": {
+        "base": "$eslint-stylish",
+      },
+      "presentation": {
+        "reveal": "silent",
+        "revealProblems": "onProblem",
+        "panel": "new",
+      },
+      "runOptions": {
+        "runOn": "folderOpen",
+        "instanceLimit": 1,
+      },
+
+    },
+    */
+  ]
+}
