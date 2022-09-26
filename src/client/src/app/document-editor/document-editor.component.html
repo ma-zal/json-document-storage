@@ -73,10 +73,14 @@
     ></ngx-monaco-editor>
 
     <div class="form-text my-0">
-      Optional.<br />
-      Note:
-      If schema entered, then document contents is validated agains it during editation and on save.
+      Schema is optional. If schema entered, then document contents is validated agains it during editation and on save.
       If no schema entered, then document contents can have any non-limited structure.
+    </div>
+
+    <div class="my-1">
+      <button type="button" (click)="generateSchema()" class="btn btn-sm btn-outline-secondary">
+        Generate schema from Document Contents
+      </button>
     </div>
   </div>
 

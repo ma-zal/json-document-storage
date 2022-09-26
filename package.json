@@ -21,7 +21,9 @@
     "ngx-monaco-editor-v2": "14.0.0",
     "pg": "^8.8.0",
     "rxjs": "^7.5.6",
+    "to-json-schema": "^0.2.5",
     "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.1.0",
     "tslib": "^2.3.0",
     "typeorm": "^0.3.9",
     "uuid": "^9.0.0",
@@ -32,6 +34,7 @@
     "@angular/cli": "~14.2.2",
     "@angular/compiler-cli": "^14.2.0",
     "@types/jasmine": "~4.0.0",
+    "@types/to-json-schema": "^0.2.1",
     "@types/uuid": "^8.3.4",
     "jasmine-core": "~4.3.0",
     "karma": "~6.4.0",
@@ -39,7 +42,6 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.0.0",
-    "tsconfig-paths": "^4.1.0",
     "type-fest": "^2.19.0",
     "typescript": "^4.8.3"
   }

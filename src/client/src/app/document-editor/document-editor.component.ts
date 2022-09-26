@@ -7,10 +7,16 @@ import { catchError, combineLatest, map, of, shareReplay, Subject, switchMap, ta
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { default as jsonSchemaDraft07 } from 'ajv/lib/refs/json-schema-draft-07.json';
+import * as toJsonSchema from 'to-json-schema';
 import { parseDocument } from '@common/document-parse';
 import { JsonDocumentToSave } from '@server/db/document';
 import { JsonDocumentService } from '../json-document.service';
 import { JSONData } from '@common/json-data.type';
+
+const FAKE_FILENAME_CONTENTS = 'contents.json';
+const FAKE_FILENAME_SCHEMA = 'myschema.json'
+const CONTENTS_MODEL_URI = `file:///${FAKE_FILENAME_CONTENTS}`;
+const SCHEMA_MODEL_URI = `file:///${FAKE_FILENAME_SCHEMA}`;
 
 const emptyDocument: JsonDocumentToSave = {
   id: null,
@@ -64,13 +70,13 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   };
 
   contentsModel: NgxEditorModel = {
-    uri: URI.parse('file:///contents.json'), // Used as ID in Monaco Editor. Must be defined anyhow, but unique.
+    uri: URI.parse(CONTENTS_MODEL_URI), // Used as ID in Monaco Editor. Must be defined anyhow, but unique.
     language: 'json',
     value: '',
   };
 
   schemaModel: NgxEditorModel = {
-   uri: URI.parse('file:///myschema.json'), // Used as ID in Monaco Editor. Must be defined anyhow, but unique.
+   uri: URI.parse(SCHEMA_MODEL_URI), // Used as ID in Monaco Editor. Must be defined anyhow, but unique.
     language: 'json',
     value: '',
   };
@@ -108,14 +114,14 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       const schemas = [
         // Meta schema
         {
-          uri: 'http://local/myschema-schema.json',
-          fileMatch: ['myschema.json'], // Associate with schema editor
+          uri: 'http://local/myschema-schema.json',  // TODO Is it needed?
+          fileMatch: [FAKE_FILENAME_SCHEMA], // Associate with schema editor
           schema: jsonSchemaDraft07
         },,
         ...(schemaJson ? [
           {
-            uri: 'http://local/contents-schema.json',
-            fileMatch: ['contents.json'], // associate with contents.
+            uri: 'http://local/contents-schema.json',  // TODO Is it needed?
+            fileMatch: [FAKE_FILENAME_CONTENTS], // associate with contents.
             schema: schemaJson,
           }
         ] : []),
@@ -261,6 +267,62 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
   applySchemaFromEditor() {
     this.useContentsSchema(this.schemaModel.value);
+  }
+
+  generateSchema() {
+    const isSchemaFilled = (/^(\s)*$/g).test(this.schemaModel.value);
+    if (
+      !isSchemaFilled &&
+      !confirm('Some JSON schema is already defined. Would you like to override it by the generate one?')
+    ) {
+      return;
+    }
+
+    let currentDocumentContents: JSONData;
+    try {
+      currentDocumentContents = JSON5.parse(this.contentsModel.value);
+    } catch (e: any) {
+      e.message('Failed, because Document Contents is currently not valid JSON document. Please fix it first. JSON error: ' + e.message);
+      throw e;
+    }
+    const schema = toJsonSchema(currentDocumentContents, {
+      required: true,  // Usefull, but this is not working correctly because of bug https://github.com/ruzicka/to-json-schema/issues/12
+      objects: {
+        additionalProperties: false,
+      }
+    });
+    // Fix the lib bug in `required` property
+    fixSchemaBug(schema);
+    // Write new chema to editor. Note: It also updates the source of ngModel `this.contentsModel.value`
+    const stringifiedSchema = JSON.stringify(schema, null, 2);
+    (window as any).monaco.editor.getModel(SCHEMA_MODEL_URI).setValue(stringifiedSchema);
+  }
+}
+
+/**
+ * Fixes the schema generator's bug.
+ * @see https://github.com/ruzicka/to-json-schema/issues/12
+ */
+function fixSchemaBug(schema: any): void {
+  if (typeof schema?.required === 'boolean') {
+    // Fix 'object' type
+    if (schema.type === 'object' && typeof schema.properties === 'object') {
+      // Fix the incorrect `required` property.
+      schema.required = Object.keys(schema.properties);
+      // Apply recursively for all object's properties.
+      Object.values(schema.properties).forEach((propertySubSchema) => fixSchemaBug(propertySubSchema));
+    } else {
+      // No `required` needed.
+      // TODO: Can this situation (`type==='object'`, but no `properties` defined) happend, or is it not possible in JSON schema?
+      delete schema.required;
+    }
+    // Fix 'array' type
+    if (schema.type === 'array' && typeof schema.items === 'object') {
+      // Apply recursively for array items type.
+      fixSchemaBug(schema.items);
+      // Optionally we can force array to be non-empty.
+      // /*enable if needed*/ schema.minItems = 1;
+    }
   }
 
 }
