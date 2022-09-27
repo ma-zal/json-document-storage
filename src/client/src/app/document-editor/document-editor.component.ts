@@ -25,17 +25,7 @@ const emptyDocument: JsonDocumentToSave = {
   contents_raw: JSON.stringify({
     "welcomeTo": "JSON document store",
   }, null, 2) + '\n',
-  schema: JSON.stringify({
-    "type": "object",
-    "required": [
-      "welcomeTo"
-    ],
-    "properties": {
-      "welcomeTo": {
-        "type": "string"
-      },
-    },
-  }, null, 2) + '\n',
+  schema: null,
   write_access_token: ''
 
 };
