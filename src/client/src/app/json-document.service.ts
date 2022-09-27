@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import {
   JsonDocument, JsonDocumentListItem, JsonDocumentToSave, JsonPublicDocument
-} from '@server/db/document';
+} from '@common/json-document.type';
 
 @Injectable({
   providedIn: 'root'

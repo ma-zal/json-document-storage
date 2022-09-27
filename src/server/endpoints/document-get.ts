@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
-import { JsonDocumentDbEntity, JsonPublicDocument } from '../db/document';
+import { JsonDocumentDbEntity } from '@common/orm-json-document';
+import { JsonPublicDocument } from '@common/json-document.type';
 import { validateUuid } from '../utils';
 
 export async function getDocumentHttp(req: Request, res: Response) {

@@ -1,6 +1,6 @@
 import { tap } from 'rxjs';
 import { Component, OnInit } from '@angular/core';
-import { JsonDocumentListItem } from '@server/db/document';
+import { JsonDocumentListItem } from '@common/json-document.type';
 import { JsonDocumentService } from '../json-document.service';
 
 @Component({

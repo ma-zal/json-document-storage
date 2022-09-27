@@ -9,7 +9,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { default as jsonSchemaDraft07 } from 'ajv/lib/refs/json-schema-draft-07.json';
 import * as toJsonSchema from 'to-json-schema';
 import { parseDocument } from '@common/document-parse';
-import { JsonDocumentToSave } from '@server/db/document';
+import { JsonDocumentToSave } from '@common/json-document.type';
 import { JsonDocumentService } from '../json-document.service';
 import { JSONData } from '@common/json-data.type';
 

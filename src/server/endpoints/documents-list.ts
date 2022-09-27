@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
-import { JsonDocumentDbEntity, JsonDocumentListItem } from '../db/document';
+import { JsonDocumentDbEntity } from '@common/orm-json-document';
+import { JsonDocumentListItem } from '@common/json-document.type';
 
 export async function getDocumentsListHttp(req: Request, res: Response) {
   try {

@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { JsonDocumentDbEntity } from './document';
+import { JsonDocumentDbEntity } from '@common/orm-json-document';
 
 export let db: DataSource;
 

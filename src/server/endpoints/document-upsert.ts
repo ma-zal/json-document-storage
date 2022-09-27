@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { parseDocument } from '@common/document-parse';
 import { db } from '../db';
-import { JsonDocumentDbEntity, JsonDocumentToSave, JsonPublicDocument } from '../db/document';
+import { JsonDocumentDbEntity } from '@common/orm-json-document';
+import { JsonDocumentToSave, JsonPublicDocument } from '@common/json-document.type';
 import { validateUuid } from '../utils';
 import { getDocument } from './document-get';
 
