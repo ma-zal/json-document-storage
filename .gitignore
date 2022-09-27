@@ -1,2 +1,5 @@
 node_modules
 src/client/.angular
+dist
+yarn-error.log
+docker-compose.override.yml

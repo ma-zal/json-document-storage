@@ -1,0 +1,37 @@
+services:
+  app:
+    image: json-document-storage:latest
+    container_name: json-document-storage
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - json-document-storage
+    environment:
+      # DB configuration
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: json-document-storage
+      POSTGRES_DB: json-document-storage
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    build:
+      context: .
+      args:
+        http_proxy: ${http_proxy}   # variable passed from host shell
+        https_proxy: ${https_proxy} # variable passed from host shell
+        no_proxy: ${no_proxy}       # variable passed from host shell
+
+  postgres:
+    image: postgres:15beta4-alpine
+    restart: unless-stopped
+    networks:
+      - json-document-storage
+    environment:
+      POSTGRES_USER: json-document-storage
+      POSTGRES_DB: json-document-storage
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${DATA_DIR:-.}/postgres-data:/var/lib/postgresql/data
+
+networks:
+  json-document-storage:
+    name: json-document-storage_default

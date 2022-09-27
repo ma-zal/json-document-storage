@@ -4,6 +4,7 @@
   "main": "app.ts",
   "license": "MIT",
   "scripts": {
-    "dev": "node -r tsconfig-paths/register -r ts-node/register --expose-gc --inspect=9229 ."
+    "dev": "node -r tsconfig-paths/register -r ts-node/register --expose-gc --inspect=9229 .",
+    "build": "../../node_modules/.bin/tsc -p ."
   }
 }

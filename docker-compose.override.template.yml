@@ -1,0 +1,8 @@
+services:
+  app:
+    environment:
+      POSTGRES_PASSWORD: "--FILL-RANDOM-PASSWORD-HERE-BEFORE-FIRST-RUN--"
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: "--FILL-SAME-PASSWORD-HERE-AS-INTO-APP-ABOVE"
