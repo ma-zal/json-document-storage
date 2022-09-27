@@ -10,7 +10,7 @@ import { serveAngular } from './serve-angular';
 const app = express();
 
 
-// Serve Angular Client App
+/** Serve Angular app (used on production build) */
 const htmlDir = resolve(__dirname, '../client');
 serveAngular(app, htmlDir, '/manage');
 

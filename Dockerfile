@@ -12,6 +12,8 @@ COPY package.json yarn.lock /app/
 WORKDIR /app
 RUN yarn install && yarn cache clean --all
 
+ARG NG_CLI_ANALYTICS="false"
+
 # Build Client Apps
 COPY /src/common /app/src/common
 COPY /src/client /app/src/client
