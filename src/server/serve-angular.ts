@@ -1,6 +1,12 @@
 import express, { Application } from 'express';
 import path from 'path';
 
+/**
+ * 
+ * @param app 
+ * @param htmlDir 
+ * @param basePath - basepath without '/' on begin and wihout on the end. @example `client`
+ */
 export function serveAngular(app: Application, htmlDir: string, basePath: string) {
   app.use(basePath, express.static(htmlDir));
   // Serve Angular HTML5 routes
@@ -14,6 +20,6 @@ export function serveAngular(app: Application, htmlDir: string, basePath: string
 /**
  * Generates regExp that matches all Angular HTML5 paths.
  */
- export function angularAllRoutes(appBasehref: string) {
+export function angularAllRoutes(appBasehref: string) {
   return new RegExp(`^\/${appBasehref}(\/[a-zA-Z0-9/_-]*)?$`);
 }

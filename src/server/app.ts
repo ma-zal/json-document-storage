@@ -12,7 +12,7 @@ const app = express();
 
 /** Serve Angular app (used on production build) */
 const htmlDir = resolve(__dirname, '../client');
-serveAngular(app, htmlDir, '/manage');
+serveAngular(app, htmlDir, 'manage');
 
 app.use('/api/*', express.json()); // Used to parse JSON bodies
 
