@@ -1,4 +1,4 @@
-<ng-container *ngIf="!isLoading; else loadingTemplate">
+<ng-container *ngIf="document">
   <!-- Save button -->
   <div class="my-2 float-end">
     <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()">Save</button>
@@ -11,12 +11,7 @@
   </h1>
 </ng-container>
 
-<div class="alert alert-danger my-4" *ngIf="error">
-  <h4>Error - Something went wrong</h4>
-  {{ error }}
-</div>
-
-<ng-container *ngIf="!isLoading">
+<ng-container *ngIf="document">
 
   <div class="mb-3" *ngIf="document.id">
     <label for="title" class="form-label">Document ID</label>

@@ -3,7 +3,7 @@ import * as JSON5 from 'json5';
 import { URI } from 'monaco-editor/esm/vs/base/common/uri';
 import { /*editor as MonacoEditor,*/ languages as MonacoLanguages } from 'monaco-editor';
 import { NgxEditorModel } from 'ngx-monaco-editor-v2';
-import { catchError, combineLatest, map, of, shareReplay, Subject, switchMap, tap } from 'rxjs';
+import { catchError, combineLatest, defer, map, of, shareReplay, Subject, switchMap, tap } from 'rxjs';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { default as jsonSchemaDraft07 } from 'ajv/lib/refs/json-schema-draft-07.json';
@@ -12,6 +12,7 @@ import { parseDocument } from '@common/document-parse';
 import { JsonDocumentToSave } from '@common/json-document.type';
 import { JsonDocumentService } from '../json-document.service';
 import { JSONData } from '@common/json-data.type';
+import { SweetalertService } from '../sweetalert.service';
 
 const FAKE_FILENAME_CONTENTS = 'contents.json';
 const FAKE_FILENAME_SCHEMA = 'myschema.json'
@@ -39,8 +40,6 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
   uiTabIndex = 0;
 
-  error: string | undefined;
-  isLoading: boolean = true;
   /** Observable for transfering schema from source (editor, loader) into validator and into document to save. */
   contentsSchemaUpdater$: Subject<string> = new Subject();
   monacoInitialized$ = new Subject<void>();
@@ -81,6 +80,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     private activeRoute: ActivatedRoute,
     private router: Router,
     private jsonDocumentService: JsonDocumentService,
+    private sweetalertService: SweetalertService,
   ) {
     // Update schema in document.
     this.contentsSchemaUpdater$.pipe(shareReplay(1)).subscribe((strigifiedSchema) => {
@@ -127,8 +127,9 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     // Document loading
     this.activeRoute.params.pipe(
       tap(() => {
-        this.error = undefined;
-        this.isLoading = true;
+        this.sweetalertService.displayBusy({
+          title: 'Loading ...'
+        });
       }),
       switchMap((params) => {
         const documentId = params['documentId'];
@@ -158,30 +159,33 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
         }
       }),
       catchError((err: Error) => {
-        this.isLoading = false;
-        this.error = err.message;
         throw err;
       }),
-    ).subscribe((document) => {
-      this.isLoading = false;
-      // Generate a random token for new documents
-      if (!document.id) {
-        this.document.write_access_token = cryptoRandomString({length: 16, type: 'alphanumeric'});;
-      }
-      this.document = {
-        id: document.id,
-        contents_raw: document.contents_raw, // TODO: Not required here.
-        schema: document.schema,  //TODO: Not required here, because updated by `updateSchema()` below.
-        title: document.title,
-        notes: document.notes,
-        write_access_token: document.write_access_token,
-      };
-      this.contentsModel.value = document.contents_raw;
-      const stringifiedSchema = document.schema ? JSON.stringify(document.schema, null, 2) : '';
-      this.schemaModel.value = stringifiedSchema;
-      // Start the contents validation agains schema.
-      this.useContentsSchema(stringifiedSchema);
-    });
+    ).subscribe({
+        next: (document) => {
+          this.sweetalertService.closePopup();
+          // Generate a random token for new documents
+          if (!document.id) {
+            this.document.write_access_token = cryptoRandomString({length: 16, type: 'alphanumeric'});;
+          }
+          this.document = {
+            id: document.id,
+            contents_raw: document.contents_raw, // TODO: Not required here.
+            schema: document.schema,  //TODO: Not required here, because updated by `updateSchema()` below.
+            title: document.title,
+            notes: document.notes,
+            write_access_token: document.write_access_token,
+          };
+          this.contentsModel.value = document.contents_raw;
+          const stringifiedSchema = document.schema ? JSON.stringify(document.schema, null, 2) : '';
+          this.schemaModel.value = stringifiedSchema;
+          // Start the contents validation agains schema.
+          this.useContentsSchema(stringifiedSchema);
+        },
+        error: (err: Error) => {
+          this.sweetalertService.displayError(err);
+        }
+      });
   }
 
   ngOnInit(): void { }
@@ -194,10 +198,12 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   /**
    * Save new document / update existing.
    */
-  save() {
-    try {
-      this.isLoading = true;
-      this.error = undefined;
+  async save() {
+    defer(() => {
+
+      this.sweetalertService.displayBusy({
+        title: 'Saving ...'
+      });
 
       this.applySchemaFromEditor();
 
@@ -209,33 +215,37 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       // Check the document validation (throws error)
       parseDocument(this.document.contents_raw, schema);
 
-      this.jsonDocumentService.set({
+      return this.jsonDocumentService.set({
         id: this.document.id,
         title: this.document.title,
         notes: this.document.notes,
         contents_raw: this.document.contents_raw,
         schema: schema,
         write_access_token: this.document.write_access_token,
-      }).subscribe({
-        next: (document) => {
-          this.document.id = document.id;
+      });
+    }).subscribe({
+      next: (document) => {
+        this.document.id = document.id;
+        this.sweetalertService.closePopup();
 
-          this.isLoading = false;
-
-          // Route to document editation (used, when stored a new document).
-          if (!this.activeRoute.snapshot.params['documentId']) {
-            this.router.navigate(['/document', this.document.id]);
-          }
-        },
-        // Error catch
-        error: (err: Error) => {
-          this.error = err.message;
-          this.isLoading = false;
-      }});
-    } catch (e: any) {
-      this.error = 'Document was not saved. Error reason: ' + e.message;
-      this.isLoading = false;
-    }
+        // Route to document editation (used, when stored a new document).
+        if (!this.activeRoute.snapshot.params['documentId']) {
+          this.router.navigate(['/document', this.document.id]);
+        }
+      },
+      complete: () => {
+        this.sweetalertService.swal.fire({
+          title: 'Saved.',
+          timer: 2000,
+          icon: 'success',
+          timerProgressBar: true,
+        });
+      },
+      // Error catch
+      error: (err: Error) => {
+        err.message = 'Document was not saved. Error reason: ' + err.message;
+        this.sweetalertService.displayError(err);
+    }});
   }
 
   getApiUrl(documentId: string) {

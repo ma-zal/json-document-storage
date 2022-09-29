@@ -2,22 +2,23 @@ import { tap } from 'rxjs';
 import { Component, OnInit } from '@angular/core';
 import { JsonDocumentListItem } from '@common/json-document.type';
 import { JsonDocumentService } from '../json-document.service';
+import { SweetalertService } from '../sweetalert.service';
 
 @Component({
   selector: 'app-documents-list',
   templateUrl: './documents-list.component.html',
   styleUrls: ['./documents-list.component.scss']
 })
-export class DocumentsListComponent implements OnInit {
+export class DocumentsListComponent {
 
-  error: string|undefined;
-  isLoading = true;
   documents: JsonDocumentListItem[] = [];
 
   constructor(
     private jsonDocumentService: JsonDocumentService,
+    private sweetAlertService: SweetalertService,
   ) {
-    this.isLoading = true;
+    this.sweetAlertService.displayBusy({ title: 'Loading ...' });
+
     jsonDocumentService.list().pipe(
       tap((list) => {
         // Save to controller
@@ -25,16 +26,12 @@ export class DocumentsListComponent implements OnInit {
       })
     ).subscribe({
       next: () => {
-        this.isLoading = false;
+        this.sweetAlertService.closePopup();
       },
       error: (err: Error) => {
-        this.error = err.message;
-        this.isLoading = false;
+        err.message = 'Failed to load the list of documents. ' + err.message;
+        this.sweetAlertService.displayError(err);
       }
     })
   }
-
-  ngOnInit(): void {
-  }
-
 }
