@@ -35,38 +35,27 @@
   <!-- TODO migrate into ng-bootstrap (but it is not ready for Angular 14 yet) -->
   <ul class="nav nav-tabs">
     <li class="nav-item">
-      <a class="nav-link" [class.active]="uiTabIndex === 0" (click)="applySchemaFromEditor();uiTabIndex = 0;">Document Contents</a>
+      <a class="nav-link" [class.active]="uiTabIndex === 0" (click)="changeEditorTab(0)">Document Contents</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="uiTabIndex === 1" (click)="uiTabIndex = 1">JSON Validation Shema</a>
+      <a class="nav-link" [class.active]="uiTabIndex === 1" (click)="changeEditorTab(1)">JSON Validation Shema</a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="uiTabIndex === 2" (click)="uiTabIndex = 2">Notes</a>
+      <a class="nav-link" [class.active]="uiTabIndex === 2" (click)="changeEditorTab(2)">Notes</a>
     </li>
   </ul>
 
-  <!-- Contents Editor-->
-  <div class="mb-3" *ngIf="uiTabIndex === 0">
+  <!-- Monaco Editor - for all 3 documents (Contents, Schema, Notes)-->
+  <div class="mb-3">
     <ngx-monaco-editor
       class="code-editor"
       [options]="editorOptions"
-      [model]="contentsModel"
-      [(ngModel)]="contentsModel.value"
-      [ngModelOptions]="{ standalone: true }"
       (onInit)="onMonacoInit($event)"
     ></ngx-monaco-editor>
   </div>
 
   <!-- Schema editor -->
   <div class="mb-3" *ngIf="uiTabIndex === 1">
-    <ngx-monaco-editor
-      class="code-editor"
-      [options]="editorOptions"
-      [model]="schemaModel"
-      [(ngModel)]="schemaModel.value"
-      [ngModelOptions]="{ standalone: true }"
-    ></ngx-monaco-editor>
-
     <div class="form-text my-0">
       Schema is optional. If schema entered, then document contents is validated agains it during editation and on save.
       If no schema entered, then document contents can have any non-limited structure.
@@ -78,16 +67,6 @@
       </button>
     </div>
   </div>
-
-  <!-- Notes -->
-  <div class="mb-3" *ngIf="uiTabIndex === 2">
-    <textarea
-      class="form-control" rows="16"
-      [(ngModel)]="document.notes"
-      [ngModelOptions]="{ standalone: true }"
-    ></textarea>
-  </div>
-
 
   <div class="my-3">
     <label for="write_access_token" class="form-label">Write Access Token</label>

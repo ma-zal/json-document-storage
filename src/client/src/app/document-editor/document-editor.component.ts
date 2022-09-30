@@ -1,10 +1,9 @@
 import cryptoRandomString from 'crypto-random-string';
 import * as JSON5 from 'json5';
 import { URI } from 'monaco-editor/esm/vs/base/common/uri';
-import { /*editor as MonacoEditor,*/ languages as MonacoLanguages } from 'monaco-editor';
-import { NgxEditorModel } from 'ngx-monaco-editor-v2';
-import { catchError, combineLatest, defer, map, of, shareReplay, Subject, switchMap, tap } from 'rxjs';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { editor as MonacoEditor, languages as MonacoLanguages } from 'monaco-editor';
+import { catchError, combineLatest, defer, first, map, of, ReplaySubject, Subject, switchMap, tap } from 'rxjs';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { default as jsonSchemaDraft07 } from 'ajv/lib/refs/json-schema-draft-07.json';
 import * as toJsonSchema from 'to-json-schema';
@@ -13,11 +12,11 @@ import { JsonDocumentToSave } from '@common/json-document.type';
 import { JsonDocumentService } from '../json-document.service';
 import { JSONData } from '@common/json-data.type';
 import { SweetalertService } from '../sweetalert.service';
+import { MonacoEditorService } from '../monaco-editor.service';
 
 const FAKE_FILENAME_CONTENTS = 'contents.json';
 const FAKE_FILENAME_SCHEMA = 'myschema.json'
-const CONTENTS_MODEL_URI = `file:///${FAKE_FILENAME_CONTENTS}`;
-const SCHEMA_MODEL_URI = `file:///${FAKE_FILENAME_SCHEMA}`;
+const FAKE_FILENAME_NOTES = 'notes.txt'
 
 const emptyDocument: JsonDocumentToSave = {
   id: null,
@@ -28,7 +27,6 @@ const emptyDocument: JsonDocumentToSave = {
   }, null, 2) + '\n',
   schema: null,
   write_access_token: ''
-
 };
 
 @Component({
@@ -37,40 +35,34 @@ const emptyDocument: JsonDocumentToSave = {
   styleUrls: ['./document-editor.component.scss']
 })
 export class DocumentEditorComponent implements OnInit, OnDestroy {
+  public CONTENTS_MODEL_URI = URI.parse(`file:///${FAKE_FILENAME_CONTENTS}`);
+  public SCHEMA_MODEL_URI = URI.parse(`file:///${FAKE_FILENAME_SCHEMA}`);
+  public NOTES_MODEL_URI = URI.parse(`file:///${FAKE_FILENAME_NOTES}`);
 
+  /** Saved states of Monaco Editor tabs */
+  savedStates: Record<string, MonacoEditor.ICodeEditorViewState> = {};
+  
   uiTabIndex = 0;
 
   /** Observable for transfering schema from source (editor, loader) into validator and into document to save. */
   contentsSchemaUpdater$: Subject<string> = new Subject();
-  monacoInitialized$ = new Subject<void>();
+  monacoInitialized$ = new ReplaySubject<void>();
 
-  editorOptions/*: MonacoEditor.IStandaloneEditorConstructionOptions*/ = {
+  editorOptions: MonacoEditor.IStandaloneEditorConstructionOptions = {
     theme: 'vs-dark',
     scrollBeyondLastLine: false,
     language: 'json',
     minimap: {
       enabled: false,
     },
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'monospace',
     lineNumbersMinChars: 2,
-    
-    // fontWeight: 'bold'
+    formatOnPaste: true,
+    tabSize: 2,
   };
 
-  contentsModel: NgxEditorModel = {
-    uri: URI.parse(CONTENTS_MODEL_URI), // Used as ID in Monaco Editor. Must be defined anyhow, but unique.
-    language: 'json',
-    value: '',
-  };
-
-  schemaModel: NgxEditorModel = {
-   uri: URI.parse(SCHEMA_MODEL_URI), // Used as ID in Monaco Editor. Must be defined anyhow, but unique.
-    language: 'json',
-    value: '',
-  };
-
-  public document: JsonDocumentToSave = {
+  public document: Omit<JsonDocumentToSave, 'schema'|'notes'|'contents_raw'> = {
     ...emptyDocument,
     write_access_token: ''
   };
@@ -81,16 +73,18 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     private router: Router,
     private jsonDocumentService: JsonDocumentService,
     private sweetalertService: SweetalertService,
+    private monacoEditorService: MonacoEditorService,
+    private cdr: ChangeDetectorRef,
   ) {
     // Update schema in document.
-    this.contentsSchemaUpdater$.pipe(shareReplay(1)).subscribe((strigifiedSchema) => {
-      this.document.schema = strigifiedSchema ? JSON5.parse(strigifiedSchema) : null;
-    });
+    // this.contentsSchemaUpdater$.pipe(shareReplay(1)).subscribe((strigifiedSchema) => {
+    //   this.document.schema = strigifiedSchema ? JSON5.parse(strigifiedSchema) : null;
+    // });
 
     // Set schema as Monaco validator.
     combineLatest([
       this.contentsSchemaUpdater$,
-      this.monacoInitialized$,
+      this.monacoInitialized$.pipe(first()),
     ]).subscribe(([schema]) => {
       let schemaJson: JSONData | null = null;
       try {
@@ -125,13 +119,16 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     });
 
     // Document loading
-    this.activeRoute.params.pipe(
+    combineLatest([
+      this.activeRoute.params,
+      this.monacoInitialized$.pipe(first()),
+    ]).pipe(
       tap(() => {
         this.sweetalertService.displayBusy({
           title: 'Loading ...'
         });
       }),
-      switchMap((params) => {
+      switchMap(([params]) => {
         const documentId = params['documentId'];
         if (typeof documentId === 'string') {
           // Existing document
@@ -170,23 +167,26 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
           }
           this.document = {
             id: document.id,
-            contents_raw: document.contents_raw, // TODO: Not required here.
-            schema: document.schema,  //TODO: Not required here, because updated by `updateSchema()` below.
             title: document.title,
-            notes: document.notes,
             write_access_token: document.write_access_token,
           };
-          this.contentsModel.value = document.contents_raw;
+          this.cdr.detectChanges();
+
+          // Create models in Monaco
+          monacoEditorService.setModelValue(document.contents_raw, 'json', this.CONTENTS_MODEL_URI);
+          monacoEditorService.setModelValue(document.notes, undefined, this.NOTES_MODEL_URI);
           const stringifiedSchema = document.schema ? JSON.stringify(document.schema, null, 2) : '';
-          this.schemaModel.value = stringifiedSchema;
+          monacoEditorService.setModelValue(stringifiedSchema, 'json', this.SCHEMA_MODEL_URI);
           // Start the contents validation agains schema.
           this.useContentsSchema(stringifiedSchema);
+          monacoEditorService.switchMonacoEditorModel(this.CONTENTS_MODEL_URI, this.savedStates);
         },
         error: (err: Error) => {
           this.sweetalertService.displayError(err);
         }
       });
   }
+
 
   ngOnInit(): void { }
 
@@ -208,18 +208,24 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       this.applySchemaFromEditor();
 
       // Apply contents from editor
-      this.document.contents_raw = this.contentsModel.value;
+      const contents_raw = this.monacoEditorService.getModelEditorValue(this.CONTENTS_MODEL_URI);
+      if (contents_raw === undefined) {
+        throw new Error('Contents is not defined');
+      }
+      // Apply schema from editor
+      const stringifiedSchema = this.monacoEditorService.getModelEditorValue(this.SCHEMA_MODEL_URI);
+      const schema = stringifiedSchema ? JSON5.parse(stringifiedSchema) : null;
 
-      const schema = this.document.schema || null;
+      const notes = this.monacoEditorService.getModelEditorValue(this.NOTES_MODEL_URI);
 
       // Check the document validation (throws error)
-      parseDocument(this.document.contents_raw, schema);
+      parseDocument(contents_raw, schema);
 
       return this.jsonDocumentService.set({
         id: this.document.id,
         title: this.document.title,
-        notes: this.document.notes,
-        contents_raw: this.document.contents_raw,
+        notes: notes,
+        contents_raw: contents_raw,
         schema: schema,
         write_access_token: this.document.write_access_token,
       });
@@ -266,11 +272,18 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   }
 
   applySchemaFromEditor() {
-    this.useContentsSchema(this.schemaModel.value);
+    // Read schema from Monaco editor
+    const value = this.monacoEditorService.getModelEditorValue(this.SCHEMA_MODEL_URI);
+    if (value === undefined) {
+      throw new Error(`Model ${this.SCHEMA_MODEL_URI} is missing.`);
+    }
+    // Write as validation schema
+    this.useContentsSchema(value);
   }
 
   generateSchema() {
-    const isSchemaFilled = (/^(\s)*$/g).test(this.schemaModel.value);
+    const existingStringifiedSchema = this.monacoEditorService.getModelEditorValue(this.SCHEMA_MODEL_URI) || '';
+    const isSchemaFilled = (/^(\s)*$/g).test(existingStringifiedSchema);
     if (
       !isSchemaFilled &&
       !confirm('Some JSON schema is already defined. Would you like to override it by the generate one?')
@@ -280,9 +293,11 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
     let currentDocumentContents: JSONData;
     try {
-      currentDocumentContents = JSON5.parse(this.contentsModel.value);
+      const stringifiedContents = this.monacoEditorService.getModelEditorValue(this.CONTENTS_MODEL_URI);
+      currentDocumentContents = JSON5.parse(stringifiedContents);
     } catch (e: any) {
-      e.message('Failed, because Document Contents is currently not valid JSON document. Please fix it first. JSON error: ' + e.message);
+      e.message = 'Failed, because Document Contents is currently not valid JSON document. Please fix it first. JSON error: ' + e.message;
+      alert(e.message);
       throw e;
     }
     const schema = toJsonSchema(currentDocumentContents, {
@@ -294,8 +309,26 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     // Fix the lib bug in `required` property
     fixSchemaBug(schema);
     // Write new chema to editor. Note: It also updates the source of ngModel `this.contentsModel.value`
-    const stringifiedSchema = JSON.stringify(schema, null, 2);
-    (window as any).monaco.editor.getModel(SCHEMA_MODEL_URI).setValue(stringifiedSchema);
+    const stringifiedGeneratedSchema = JSON.stringify(schema, null, 2);
+    this.monacoEditorService.setModelValue(stringifiedGeneratedSchema, 'json', this.SCHEMA_MODEL_URI);
+  }
+
+  changeEditorTab(targetTabIndex: number) {
+    switch (targetTabIndex) {
+      case 0:
+        if (this.uiTabIndex === 1) {
+          this.applySchemaFromEditor();
+        }
+        this.monacoEditorService.switchMonacoEditorModel(this.CONTENTS_MODEL_URI, this.savedStates);
+        break;
+      case 1:
+        this.monacoEditorService.switchMonacoEditorModel(this.SCHEMA_MODEL_URI, this.savedStates);
+        break;
+      case 2:
+        this.monacoEditorService.switchMonacoEditorModel(this.NOTES_MODEL_URI, this.savedStates)
+        break;
+    }
+    this.uiTabIndex = targetTabIndex;
   }
 }
 
