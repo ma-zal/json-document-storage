@@ -18,8 +18,14 @@ export class JsonDocumentService {
     );
   }  
 
-  set(document: JsonDocumentToSave): Observable<JsonPublicDocument> {
-    return this.http.post<JsonDocument>('/api/manage/document', document).pipe(
+  upsert(document: JsonDocumentToSave, writeAccessToken: string | undefined): Observable<JsonPublicDocument> {
+    return this.http.post<JsonDocument>('/api/manage/document', document, {
+      headers: {
+        ... writeAccessToken ? {
+          'Authorization': 'Bearer ' + writeAccessToken,
+        } : {}
+      }
+    }).pipe(
       tap((document) => {
         document.created_at = new Date(document.created_at as any as string);
         document.updated_at = new Date(document.updated_at as any as string);
@@ -46,8 +52,7 @@ export class JsonDocumentService {
 
 function throwHttpServerErrorMessage<T>(err: HttpErrorResponse, o: ObservableInput<T>): Observable<T> {
   if (err.error?.error) {
-    throw new Error(err.error.error);
-  } else {
-    throw err;
+    (err as any).message = err.error.error;
   }
+  throw err;
 }

@@ -69,21 +69,28 @@
   </div>
 
   <div class="my-3">
-    <label for="write_access_token" class="form-label">Write Access Token</label>
+    <label for="write_access_token" class="form-label">
+      <ng-container *ngIf="document.id">Change </ng-container>
+      Write-protection password
+      <ng-container *ngIf="document.id">to:</ng-container>
+    </label>
     <input
-      type="text"
+      type="password"
       class="form-control"
       id="write_access_token"
       [(ngModel)]="document.write_access_token"
       [ngModelOptions]="{ standalone: true }"
       aria-describedby="writeAccessTokenHelp"
-      minlength="12"
+      autocomplete="new-password"
     />
-    <div id="writeAccessTokenHelp" class="form-text">
+    <div id="writeAccessTokenHelp" class="form-text" *ngIf="!document.id">
       Enter any string during document creation and store it in private. It is required to grand any document
       update.
       <br />
       If kept empty, then document can be updated without by anybody without any authorization.
+    </div>
+    <div id="writeAccessTokenHelp" class="form-text" *ngIf="document.id">
+      If kept empty, then no password change is required.
     </div>
   </div>
 

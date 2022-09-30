@@ -20,12 +20,13 @@ export async function upsertDocumentHttp(req: Request, res: Response) {
       schema: req.body.schema,
       write_access_token: req.body.write_access_token,
     }
-    const updatedDocument = await upsertDocument(document);
+    const accessToken = req.headers.authorization?.split(' ')[1];
+    const updatedDocument = await upsertDocument(document, accessToken);
     res.json(updatedDocument);
     res.end();
 
   } catch (e: any) {
-    res.status(500);
+    res.status(e.statusCode || 500);
     res.json({
       error: e.message,
     });
@@ -33,17 +34,42 @@ export async function upsertDocumentHttp(req: Request, res: Response) {
 }
 
 
-export async function upsertDocument(document: JsonDocumentToSave): Promise<JsonPublicDocument> {
+export async function upsertDocument(document: JsonDocumentToSave, writeAccessToken: string | undefined): Promise<JsonPublicDocument> {
   let existingDocument: JsonDocumentDbEntity | null = null;
   if (document.id) {
     existingDocument = await db.getRepository(JsonDocumentDbEntity).findOneBy({
       id: document.id
     });
   }
+
+  const contents = parseDocument(document.contents_raw, document.schema);
+
   if (existingDocument) {
-    if (existingDocument.write_access_token !== document.write_access_token) {
-      throw new Error('Update document rejected, because write token is not correct.')
+    if (existingDocument.write_access_token && !writeAccessToken) {
+      const error = new Error('Update document rejected, because write is password protected.');
+      (error as any).statusCode = 401;
+      throw error;
     }
+
+    if ((existingDocument.write_access_token || writeAccessToken) && existingDocument.write_access_token !== writeAccessToken) {
+      const error = new Error('Update document rejected, because write token is not correct.');
+      (error as any).statusCode = 403;
+      throw error;
+    }
+
+    existingDocument.title = document.title;
+    existingDocument.notes = document.notes;
+    existingDocument.contents_raw = document.contents_raw;
+    existingDocument.contents = contents;
+    existingDocument.schema = document.schema;
+    existingDocument.updated_at = new Date();
+    if (typeof document.write_access_token === 'string') {
+      existingDocument.write_access_token = document.write_access_token;
+    }
+    await db.getRepository(JsonDocumentDbEntity).save(existingDocument);
+
+    return getDocument(existingDocument.id);
+
   } else {
     // New document.
 
@@ -51,25 +77,21 @@ export async function upsertDocument(document: JsonDocumentToSave): Promise<Json
     // if (document.write_access_token?.length < 8) {
     //   throw new Error('Store document rejected, because the write token length must be at least 8 chars.');
     // }
+
+    const id = uuidv4();
+
+    await db.getRepository(JsonDocumentDbEntity).insert({
+      id: id,
+      title: document.title,
+      notes: document.notes,
+      contents_raw: document.contents_raw,
+      contents: contents,
+      schema: document.schema,
+      updated_at: new Date(),
+      ...document.write_access_token !== undefined ? { write_access_token: document.write_access_token } : {}
+    });
+
+    return getDocument(id);
   }
 
-  // Parse document
-  const contents = parseDocument(document.contents_raw, document.schema);
-
-  if (!document.id) {
-    document.id = uuidv4();
-  }
-
-  await db.getRepository(JsonDocumentDbEntity).upsert({
-    id: document.id,
-    title: document.title,
-    notes: document.notes,
-    contents_raw: document.contents_raw,
-    contents: contents,
-    schema: document.schema,
-    write_access_token: document.write_access_token,
-    updated_at: new Date(),
-  }, ['id']);
-
-  return getDocument(document.id);
 }

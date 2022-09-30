@@ -2,7 +2,7 @@ import cryptoRandomString from 'crypto-random-string';
 import * as JSON5 from 'json5';
 import { URI } from 'monaco-editor/esm/vs/base/common/uri';
 import { editor as MonacoEditor, languages as MonacoLanguages } from 'monaco-editor';
-import { catchError, combineLatest, defer, first, map, of, ReplaySubject, Subject, switchMap, tap } from 'rxjs';
+import { catchError, combineLatest, defer, first, firstValueFrom, from, map, of, ReplaySubject, Subject, switchMap, tap } from 'rxjs';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { default as jsonSchemaDraft07 } from 'ajv/lib/refs/json-schema-draft-07.json';
@@ -198,8 +198,8 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   /**
    * Save new document / update existing.
    */
-  async save() {
-    defer(() => {
+  save() {
+    return defer(() => {
 
       this.sweetalertService.displayBusy({
         title: 'Saving ...'
@@ -221,13 +221,13 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       // Check the document validation (throws error)
       parseDocument(contents_raw, schema);
 
-      return this.jsonDocumentService.set({
+      return this.uploadDocumentToServer(<JsonDocumentToSave>{
         id: this.document.id,
         title: this.document.title,
         notes: notes,
         contents_raw: contents_raw,
         schema: schema,
-        write_access_token: this.document.write_access_token,
+        write_access_token: this.document.write_access_token || undefined,
       });
     }).subscribe({
       next: (document) => {
@@ -240,6 +240,9 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
         }
       },
       complete: () => {
+        // Remove last entered password to change.
+        this.document.write_access_token = '';
+
         this.sweetalertService.swal.fire({
           title: 'Saved.',
           timer: 2000,
@@ -252,6 +255,40 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
         err.message = 'Document was not saved. Error reason: ' + err.message;
         this.sweetalertService.displayError(err);
     }});
+  }
+
+  private uploadDocumentToServer(document: JsonDocumentToSave) {
+    return defer(async () => {
+      try {
+        return await firstValueFrom(this.jsonDocumentService.upsert(document, undefined));
+      } catch (error: any) {
+        console.log('ERROR', error instanceof Error, Object.values(error));
+        if (error.status !== 401) {
+          // Unknown error
+          throw error;
+        }
+        // 401 means the write access token is requied
+        const { value: password } = await this.sweetalertService.swal.fire({
+          title: 'Password protected',
+          text: 'Existing document is password protected. Enter valid password to finish the saving.',
+          input: 'password',
+          inputLabel: 'Current document write password:',
+          inputPlaceholder: 'Enter your password',
+          inputAttributes: {
+            maxlength: '100',
+            autocapitalize: 'off',
+            autocorrect: 'off'
+          },
+          confirmButtonText: 'Save document',
+        });
+        if (password) {
+          // Next try to save with password
+          return firstValueFrom(this.jsonDocumentService.upsert(document, password));
+        } else {
+          throw new Error('Password required, but not not entered by user.');
+        }
+      }
+    });
   }
 
   getApiUrl(documentId: string) {
