@@ -1,4 +1,4 @@
-<ng-container>
+<div class="container-fluid">
   <!-- Save button -->
   <div class="float-end">
     <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()">Save</button>
@@ -10,9 +10,6 @@
     <ng-container *ngIf="document.id">Edit: </ng-container>
     {{document.title || 'Untitled document'}}
   </h1>
-</ng-container>
-
-<ng-container *ngIf="document">
 
   <!-- TODO migrate into ng-bootstrap (but it is not ready for Angular 14 yet) -->
   <ul class="nav nav-tabs">
@@ -48,6 +45,9 @@
     </div>
   </div>
 
+</div>
+
+<div class="container">
   <div class="my-3">
     <label for="title" class="form-label">Document Title</label>
     <input
@@ -104,7 +104,7 @@
     </div>
   </div>
 
-</ng-container>
+</div>
 
 <ng-template #loadingTemplate>
   <h1>Working ...</h1>
