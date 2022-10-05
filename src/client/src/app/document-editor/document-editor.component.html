@@ -1,36 +1,18 @@
-<ng-container *ngIf="document">
+<ng-container>
   <!-- Save button -->
-  <div class="my-2 float-end">
+  <div class="float-end">
     <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()">Save</button>
   </div>
 
   <!-- Header -->
-  <h1 class="display-6" *ngIf="!document.id">New document</h1>
-  <h1 class="display-6" *ngIf="document.id">
-    Document editation
+  <h1 class="display-6 mb-5">
+    <ng-container *ngIf="!document.id">New: </ng-container>
+    <ng-container *ngIf="document.id">Edit: </ng-container>
+    {{document.title || 'Untitled document'}}
   </h1>
 </ng-container>
 
 <ng-container *ngIf="document">
-
-  <div class="mb-3" *ngIf="document.id">
-    <label for="title" class="form-label">Document ID</label>
-    <input type="text" id="title" class="form-control" [value]="document.id" aria-describedby="idHelp" disabled />
-    <div id="idHelp" class="form-text">Keep ID and the Write Password stored for future find and edit the document.</div>
-  </div>
-
-  <div class="mb-3">
-    <label for="title" class="form-label">Title</label>
-    <input
-      type="text"
-      id="title"
-      class="form-control"
-      [(ngModel)]="document.title"
-      [ngModelOptions]="{ standalone: true }"
-      aria-describedby="titleHelp"
-    />
-    <div id="titleHelp" class="form-text">Just for better understanding, what you are looking for.</div>
-  </div>
 
   <!-- TODO migrate into ng-bootstrap (but it is not ready for Angular 14 yet) -->
   <ul class="nav nav-tabs">
@@ -46,13 +28,11 @@
   </ul>
 
   <!-- Monaco Editor - for all 3 documents (Contents, Schema, Notes)-->
-  <div class="mb-3">
-    <ngx-monaco-editor
-      class="code-editor"
-      [options]="editorOptions"
-      (onInit)="onMonacoInit($event)"
-    ></ngx-monaco-editor>
-  </div>
+  <ngx-monaco-editor
+    class="code-editor"
+    [options]="editorOptions"
+    (onInit)="onMonacoInit($event)"
+  ></ngx-monaco-editor>
 
   <!-- Schema editor -->
   <div class="mb-3" *ngIf="uiTabIndex === 1">
@@ -66,6 +46,19 @@
         Generate schema from Document Contents
       </button>
     </div>
+  </div>
+
+  <div class="my-3">
+    <label for="title" class="form-label">Document Title</label>
+    <input
+      type="text"
+      id="title"
+      class="form-control"
+      [(ngModel)]="document.title"
+      [ngModelOptions]="{ standalone: true }"
+      aria-describedby="titleHelp"
+    />
+    <div id="titleHelp" class="form-text">Just for better understanding, what you are looking for.</div>
   </div>
 
   <div class="my-3">
@@ -102,8 +95,12 @@
   <!-- Info about API endpoint -->
   <div class="alert alert-info my-5" *ngIf="document.id">
     <div class="panel-body text-center">
-      <h6>JSON document is available on API URL:</h6>
-      <code>{{ getApiUrl(document.id) }}</code>
+
+      <h6 class="mb-0">JSON document is available on public API:</h6>
+      <p><code>GET {{ getApiUrl(document.id) }}</code></p>
+
+      <h6 class="mb-0">Document ID</h6>
+      <p><code>{{document.id}}</code></p>
     </div>
   </div>
 
