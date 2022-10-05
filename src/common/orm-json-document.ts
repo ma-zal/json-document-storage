@@ -26,7 +26,10 @@ export class JsonDocumentDbEntity {
   @UpdateDateColumn({ type: 'timestamptz', nullable: false, name: 'updated_at' })
   updated_at!: Date;
 
-  @Column({ type: 'varchar', length: 100, nullable: false })
-  write_access_token!: string;
+  /**
+   * BCrypt hashed password.
+   */
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  write_password_bcrypted!: string | null;
 
 }

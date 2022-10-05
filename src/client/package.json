@@ -8,5 +8,8 @@
     "watch": "../../node_modules/.bin/ng build --watch --configuration development",
     "test": "../../node_modules/.bin/ng test"
   },
-  "private": true
+  "private": true,
+  "browser": {
+    "crypto": false
+  }
 }

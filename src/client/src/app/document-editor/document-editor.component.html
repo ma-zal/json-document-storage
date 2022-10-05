@@ -16,7 +16,7 @@
   <div class="mb-3" *ngIf="document.id">
     <label for="title" class="form-label">Document ID</label>
     <input type="text" id="title" class="form-control" [value]="document.id" aria-describedby="idHelp" disabled />
-    <div id="idHelp" class="form-text">Keep ID and the Write Access Token stored for future find and edit the document.</div>
+    <div id="idHelp" class="form-text">Keep ID and the Write Password stored for future find and edit the document.</div>
   </div>
 
   <div class="mb-3">
@@ -69,7 +69,7 @@
   </div>
 
   <div class="my-3">
-    <label for="write_access_token" class="form-label">
+    <label for="write_password" class="form-label">
       <ng-container *ngIf="document.id">Change </ng-container>
       Write-protection password
       <ng-container *ngIf="document.id">to:</ng-container>
@@ -77,19 +77,19 @@
     <input
       type="password"
       class="form-control"
-      id="write_access_token"
-      [(ngModel)]="document.write_access_token"
+      id="write_password"
+      [(ngModel)]="document.write_password"
       [ngModelOptions]="{ standalone: true }"
-      aria-describedby="writeAccessTokenHelp"
+      aria-describedby="writePasswordHelp"
       autocomplete="new-password"
     />
-    <div id="writeAccessTokenHelp" class="form-text" *ngIf="!document.id">
+    <div id="writePasswordHelp" class="form-text" *ngIf="!document.id">
       Enter any string during document creation and store it in private. It is required to grand any document
       update.
       <br />
       If kept empty, then document can be updated without by anybody without any authorization.
     </div>
-    <div id="writeAccessTokenHelp" class="form-text" *ngIf="document.id">
+    <div id="writePasswordHelp" class="form-text" *ngIf="document.id">
       If kept empty, then no password change is required.
     </div>
   </div>

@@ -3,9 +3,9 @@ import { JsonDocumentDbEntity } from './orm-json-document';
 export interface JsonDocument extends JsonDocumentDbEntity {}
 
 /**
- * Document propertied, but without write token.
+ * Document properties, but without write password.
  */
-export interface JsonPublicDocument extends Omit<JsonDocument, 'write_access_token' | 'contents'> {}
+export interface JsonPublicDocument extends Omit<JsonDocument, 'write_password_bcrypted' | 'contents'> {}
 
 export interface JsonDocumentToSave extends Omit<JsonDocument, 'created_at' | 'updated_at' | 'id' | 'contents'> {
   id: string | null;

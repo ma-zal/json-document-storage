@@ -1,4 +1,5 @@
 import { catchError, Observable, ObservableInput, tap } from 'rxjs';
+import { encodeBase64 } from 'bcryptjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import {
@@ -18,12 +19,15 @@ export class JsonDocumentService {
     );
   }  
 
-  upsert(document: JsonDocumentToSave, writeAccessToken: string | undefined): Observable<JsonPublicDocument> {
+  upsert(document: JsonDocumentToSave, writePassword: string | undefined): Observable<JsonPublicDocument> {
+    let authBearer: string | undefined = undefined;
+    if (writePassword) {
+      const writePasswordBytes = new TextEncoder().encode(writePassword);
+      authBearer = btoa(String.fromCharCode(...writePasswordBytes));
+    }
     return this.http.post<JsonDocument>('/api/manage/document', document, {
       headers: {
-        ... writeAccessToken ? {
-          'Authorization': 'Bearer ' + writeAccessToken,
-        } : {}
+        ... authBearer ? { 'Authorization': 'Bearer ' + authBearer } : {}
       }
     }).pipe(
       tap((document) => {

@@ -1,5 +1,5 @@
-import cryptoRandomString from 'crypto-random-string';
 import * as JSON5 from 'json5';
+import * as bcrypt from 'bcryptjs';
 import { URI } from 'monaco-editor/esm/vs/base/common/uri';
 import { editor as MonacoEditor, languages as MonacoLanguages } from 'monaco-editor';
 import { catchError, combineLatest, defer, first, firstValueFrom, from, map, of, ReplaySubject, Subject, switchMap, tap } from 'rxjs';
@@ -26,7 +26,7 @@ const emptyDocument: JsonDocumentToSave = {
     "welcomeTo": "JSON document store",
   }, null, 2) + '\n',
   schema: null,
-  write_access_token: ''
+  write_password_bcrypted: ''
 };
 
 @Component({
@@ -55,6 +55,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     minimap: {
       enabled: false,
     },
+    wordBasedSuggestions: false,
     fontSize: 16,
     fontFamily: 'monospace',
     lineNumbersMinChars: 2,
@@ -62,11 +63,10 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     tabSize: 2,
   };
 
-  public document: Omit<JsonDocumentToSave, 'schema'|'notes'|'contents_raw'> = {
+  public document: EditedDocument = {
     ...emptyDocument,
-    write_access_token: ''
+    write_password: ''
   };
-  // public writeAccessToken: string = '';
 
   constructor(
     private activeRoute: ActivatedRoute,
@@ -139,7 +139,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
               schema: existingDocument.schema,
               title: existingDocument.title,
               notes: existingDocument.notes,
-              write_access_token: ''
+              write_password_bcrypted: ''
             }))
           );
         } else if (documentId === undefined) {
@@ -161,17 +161,18 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     ).subscribe({
         next: (document) => {
           this.sweetalertService.closePopup();
-          // Generate a random token for new documents
-          if (!document.id) {
-            this.document.write_access_token = cryptoRandomString({length: 16, type: 'alphanumeric'});;
-          }
+          // [Disabled] Generate a random write password for new documents
+          // if (!document.id) {
+          //   this.document.write_password = cryptoRandomString({length: 16, type: 'alphanumeric'});;
+          // }
+
+          // Push loaded/new document into form
           this.document = {
             id: document.id,
             title: document.title,
-            write_access_token: document.write_access_token,
+            write_password: '',
           };
           this.cdr.detectChanges();
-
           // Create models in Monaco
           monacoEditorService.setModelValue(document.contents_raw, 'json', this.CONTENTS_MODEL_URI);
           monacoEditorService.setModelValue(document.notes, undefined, this.NOTES_MODEL_URI);
@@ -199,7 +200,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
    * Save new document / update existing.
    */
   save() {
-    return defer(() => {
+    return defer(async () => {
 
       this.sweetalertService.displayBusy({
         title: 'Saving ...'
@@ -221,13 +222,20 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       // Check the document validation (throws error)
       parseDocument(contents_raw, schema);
 
+      // Encrypt the new `write password` (if user entered it).
+      let writePasswordBcrypted: string | null = null;
+      if (typeof this.document.write_password === 'string' && this.document.write_password !== '') {
+        const salt = await bcrypt.genSalt(10);
+        writePasswordBcrypted = await bcrypt.hash(this.document.write_password, salt);
+      }
+
       return this.uploadDocumentToServer(<JsonDocumentToSave>{
         id: this.document.id,
         title: this.document.title,
         notes: notes,
         contents_raw: contents_raw,
         schema: schema,
-        write_access_token: this.document.write_access_token || undefined,
+        write_password_bcrypted: writePasswordBcrypted
       });
     }).subscribe({
       next: (document) => {
@@ -241,7 +249,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       },
       complete: () => {
         // Remove last entered password to change.
-        this.document.write_access_token = '';
+        this.document.write_password = '';
 
         this.sweetalertService.swal.fire({
           title: 'Saved.',
@@ -257,38 +265,40 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     }});
   }
 
-  private uploadDocumentToServer(document: JsonDocumentToSave) {
-    return defer(async () => {
-      try {
-        return await firstValueFrom(this.jsonDocumentService.upsert(document, undefined));
-      } catch (error: any) {
-        console.log('ERROR', error instanceof Error, Object.values(error));
-        if (error.status !== 401) {
-          // Unknown error
-          throw error;
-        }
-        // 401 means the write access token is requied
-        const { value: password } = await this.sweetalertService.swal.fire({
-          title: 'Password protected',
-          text: 'Existing document is password protected. Enter valid password to finish the saving.',
-          input: 'password',
-          inputLabel: 'Current document write password:',
-          inputPlaceholder: 'Enter your password',
-          inputAttributes: {
-            maxlength: '100',
-            autocapitalize: 'off',
-            autocorrect: 'off'
-          },
-          confirmButtonText: 'Save document',
-        });
-        if (password) {
-          // Next try to save with password
-          return firstValueFrom(this.jsonDocumentService.upsert(document, password));
-        } else {
-          throw new Error('Password required, but not not entered by user.');
-        }
+
+  /**
+   * Saves the existing document changes or new document to server.
+   * 
+   */
+  private async uploadDocumentToServer(document: JsonDocumentToSave) {
+    try {
+      return await firstValueFrom(this.jsonDocumentService.upsert(document, undefined));
+    } catch (error: any) {
+      if (error.status !== 401) {
+        // Unknown error
+        throw error;
       }
-    });
+      // 401 means that document is password protected, so write password is requied.
+      const { value: password } = await this.sweetalertService.swal.fire({
+        title: 'Password protected',
+        text: 'Existing document is password protected. Enter valid password to finish the saving.',
+        input: 'password',
+        inputLabel: 'Current document write password:',
+        inputPlaceholder: 'Enter your password',
+        inputAttributes: {
+          maxlength: '100',
+          autocapitalize: 'off',
+          autocorrect: 'off'
+        },
+        confirmButtonText: 'Save document',
+      });
+      if (password) {
+        // Next try to save with password
+        return firstValueFrom(this.jsonDocumentService.upsert(document, password));
+      } else {
+        throw new Error('Password required, but not not entered by user.');
+      }
+    }
   }
 
   getApiUrl(documentId: string) {
@@ -395,4 +405,9 @@ function fixSchemaBug(schema: any): void {
     }
   }
 
+}
+
+
+interface EditedDocument extends Omit<JsonDocumentToSave, 'schema'|'notes'|'contents_raw'|'write_password_bcrypted'> {
+  write_password: string;
 }

@@ -12,9 +12,8 @@
             // Start with correct dir
             "cwd": "${workspaceRoot}/src/server",
             // Parameters for correct debugging of TS files
-            "runtimeArgs": ["-r", "ts-node/register"],
+            "runtimeArgs": ["--enable-source-maps", "-r", "tsconfig-paths/register", "-r", "ts-node/register"],
             "sourceMaps": true,
-            "protocol": "inspector",
             // "internalConsoleOptions": "openOnSessionStart",
             "env": {
                 "NODE_TLS_REJECT_UNAUTHORIZED": "0",
