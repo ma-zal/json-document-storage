@@ -10,10 +10,10 @@
     <tbody>
       <tr *ngFor="let document of documents">
         <th>
-          <a [routerLink]="['/document', document.id]">{{document.title || 'Untitled document'}}</a>
+          <a [routerLink]="['/document', document.id]">{{ document.title || 'Untitled document' }}</a>
         </th>
-        <td>{{document.created_at | date}}</td>
-        <td>{{document.updated_at | date}}</td>
+        <td>{{ document.created_at | date }}</td>
+        <td>{{ document.updated_at | date }}</td>
       </tr>
     </tbody>
   </table>

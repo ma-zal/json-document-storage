@@ -1,109 +1,114 @@
 <div class="container-fluid">
-  <!-- Save button -->
-  <div class="float-end">
-    <button type="button" class="mt-3 btn btn-lg btn-primary" (click)="save()">Save</button>
-  </div>
+  <div class="row">
+    <div class="col-lg-3 order-last">
+      <!-- Save button -->
+      <div class="text-end mb-4">
+        <button type="button" class="btn btn-lg btn-primary" (click)="save()">Save</button>
+      </div>
 
-  <!-- Header -->
-  <h1 class="display-6 mb-5">
-    <ng-container *ngIf="!document.id">New: </ng-container>
-    <ng-container *ngIf="document.id">Edit: </ng-container>
-    {{document.title || 'Untitled document'}}
-  </h1>
+      <!-- Title -->
+      <div class="my-4">
+        <label class="form-label form-label-lg text-end">Title:</label>
+        <input
+          type="text"
+          id="title"
+          class="form-control form-control-lg"
+          [(ngModel)]="document.title"
+          [ngModelOptions]="{ standalone: true }"
+          aria-describedby="titleHelp"
+          placeholder="Untitled document"
+          title="Just for better understanding, what you are looking for."
+        />
+      </div>
 
-  <!-- TODO migrate into ng-bootstrap (but it is not ready for Angular 14 yet) -->
-  <ul class="nav nav-tabs">
-    <li class="nav-item">
-      <a class="nav-link" [class.active]="uiTabIndex === 0" (click)="changeEditorTab(0)">Document Contents</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" [class.active]="uiTabIndex === 1" (click)="changeEditorTab(1)">JSON Validation Shema</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" [class.active]="uiTabIndex === 2" (click)="changeEditorTab(2)">Notes</a>
-    </li>
-  </ul>
+      <div class="my-4">
+        <label for="write_password" class="form-label">
+          <ng-container *ngIf="document.id">Change </ng-container>
+          Write-protection password
+          <ng-container *ngIf="document.id">to:</ng-container>
+        </label>
+        <input
+          type="password"
+          class="form-control"
+          id="write_password"
+          [(ngModel)]="document.write_password"
+          [ngModelOptions]="{ standalone: true }"
+          aria-describedby="writePasswordHelp"
+          autocomplete="new-password"
+        />
+        <div id="writePasswordHelp" class="form-text" *ngIf="!document.id">
+          Enter any string during document creation and store it in private. It is required to grand any document update.
+          <br />
+          If kept empty, then document can be updated without by anybody without any authorization.
+        </div>
+        <div id="writePasswordHelp" class="form-text" *ngIf="document.id">
+          If kept empty, then no password will stay without any change.
+        </div>
+      </div>
 
-  <!-- Monaco Editor - for all 3 documents (Contents, Schema, Notes)-->
-  <ngx-monaco-editor
-    class="code-editor"
-    [options]="editorOptions"
-    (onInit)="onMonacoInit($event)"
-  ></ngx-monaco-editor>
+      <!-- Schema info + generator -->
+      <div class="card my-4" *ngIf="uiTabIndex === 1">
+        <h6 class="card-header">Schema</h6>
+        <div class="card-body">
+          <div class="form-text my-0">
+            Schema is optional. If schema entered, then document contents is validated agains it during editation and on save. If
+            no schema entered, then document contents can have any non-limited structure.
+          </div>
 
-  <!-- Schema editor -->
-  <div class="mb-3" *ngIf="uiTabIndex === 1">
-    <div class="form-text my-0">
-      Schema is optional. If schema entered, then document contents is validated agains it during editation and on save.
-      If no schema entered, then document contents can have any non-limited structure.
+          <div class="mt-2 text-end">
+            <button type="button" (click)="generateSchema()" class="btn btn-sm btn-outline-primary">
+              Generate schema<br />Document Contents
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes info -->
+      <div class="card my-4" *ngIf="uiTabIndex === 2">
+        <h6 class="card-header">Notes</h6>
+        <div class="card-body">
+          <div class="form-text my-0">
+            Notes is free text for internal purpose only. Visible is in this managements system only. Not published via API.
+          </div>
+        </div>
+      </div>
+
+      <!-- Info about API endpoint -->
+      <div class="alert alert-info my-5" *ngIf="document.id">
+        <div class="panel-body text-center">
+          <h6 class="mb-0">JSON document is available on public API:</h6>
+          <p>
+            <code>GET {{ getApiUrl(document.id) }}</code>
+          </p>
+
+          <h6 class="mb-0">Document ID</h6>
+          <p>
+            <code>{{ document.id }}</code>
+          </p>
+        </div>
+      </div>
     </div>
 
-    <div class="my-1">
-      <button type="button" (click)="generateSchema()" class="btn btn-sm btn-outline-secondary">
-        Generate schema from Document Contents
-      </button>
+    <div class="col-lg-9">
+      <div class="me-lg-1">
+        <!-- TODO migrate into ng-bootstrap (but it is not ready for Angular 14 yet) -->
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="uiTabIndex === 0" (click)="changeEditorTab(0)">Document Contents</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="uiTabIndex === 1" (click)="changeEditorTab(1)">JSON Validation Shema</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="uiTabIndex === 2" (click)="changeEditorTab(2)">Notes</a>
+          </li>
+        </ul>
+
+        <!-- Monaco Editor - for all 3 documents (Contents, Schema, Notes)-->
+        <ngx-monaco-editor class="code-editor" [options]="editorOptions" (onInit)="onMonacoInit($event)"></ngx-monaco-editor>
+      </div>
     </div>
   </div>
-
-</div>
-
-<div class="container">
-  <div class="my-3">
-    <label for="title" class="form-label">Document Title</label>
-    <input
-      type="text"
-      id="title"
-      class="form-control"
-      [(ngModel)]="document.title"
-      [ngModelOptions]="{ standalone: true }"
-      aria-describedby="titleHelp"
-    />
-    <div id="titleHelp" class="form-text">Just for better understanding, what you are looking for.</div>
-  </div>
-
-  <div class="my-3">
-    <label for="write_password" class="form-label">
-      <ng-container *ngIf="document.id">Change </ng-container>
-      Write-protection password
-      <ng-container *ngIf="document.id">to:</ng-container>
-    </label>
-    <input
-      type="password"
-      class="form-control"
-      id="write_password"
-      [(ngModel)]="document.write_password"
-      [ngModelOptions]="{ standalone: true }"
-      aria-describedby="writePasswordHelp"
-      autocomplete="new-password"
-    />
-    <div id="writePasswordHelp" class="form-text" *ngIf="!document.id">
-      Enter any string during document creation and store it in private. It is required to grand any document
-      update.
-      <br />
-      If kept empty, then document can be updated without by anybody without any authorization.
-    </div>
-    <div id="writePasswordHelp" class="form-text" *ngIf="document.id">
-      If kept empty, then no password change is required.
-    </div>
-  </div>
-
-  <!-- Save button (bottom) -->
-  <div class="mb-3 text-end">
-    <button type="button" class="btn btn-lg btn-primary" (click)="save()">Save</button>
-  </div>
-
-  <!-- Info about API endpoint -->
-  <div class="alert alert-info my-5" *ngIf="document.id">
-    <div class="panel-body text-center">
-
-      <h6 class="mb-0">JSON document is available on public API:</h6>
-      <p><code>GET {{ getApiUrl(document.id) }}</code></p>
-
-      <h6 class="mb-0">Document ID</h6>
-      <p><code>{{document.id}}</code></p>
-    </div>
-  </div>
-
 </div>
 
 <ng-template #loadingTemplate>
