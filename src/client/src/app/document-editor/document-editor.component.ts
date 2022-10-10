@@ -59,7 +59,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     fontSize: 16,
     fontFamily: 'monospace',
     lineNumbersMinChars: 2,
-    formatOnPaste: true,
+    formatOnPaste: false,
     tabSize: 2,
   };
 
