@@ -3,3 +3,62 @@
 body {
   overflow-y: scroll;
 }
+
+
+/* #region Boostrap in custom dark colors */
+@import "../../../node_modules/bootstrap/scss/functions";
+@import "../../../node_modules/bootstrap/scss/variables";
+@import "../../../node_modules/bootstrap/scss/mixins";
+$primary: $blue-300;
+$secondary: $gray-400;
+$theme-colors: (
+  "primary":    $primary,
+  "secondary":  $secondary,
+  "success":    $success,
+  "info":       $info,
+  "warning":    $warning,
+  "danger":     $danger,
+  "light":      $light,
+  "dark":       $dark
+);
+$body-bg: $gray-800;
+$body-color: $gray-100;
+$card-bg: tint-color($body-bg, 10%);
+$card-border-color: tint-color($body-bg, 25%);;
+$link-color: $primary;
+$link-hover-color: lighten($primary, 15%);
+$input-bg: $gray-800;
+$input-border-color: $gray-400;
+$input-disabled-bg: $gray-500;
+$input-color: $white;
+$input-focus-bg: $gray-800;
+$input-focus-color: $white;
+$light: $gray-800;
+$dark: $gray-100;
+$alert-bg-level: 2;
+$alert-border-level: 7;
+$alert-color-level: -10;
+$text-muted: $gray-500;
+$tooltip-bg: $gray-700;
+$tooltip-arrow-color: $gray-700;
+$tooltip-opacity: 1;
+$dropdown-color: $gray-100;
+$dropdown-link-color: $gray-100;
+$dropdown-bg: $gray-700;
+$dropdown-border-color: $gray-600;
+$table-color: $gray-100;
+$table-border-color: $gray-700;
+$nav-tabs-link-active-color: $gray-100;
+$nav-tabs-link-active-bg: tint-color($body-bg, 10%);
+$nav-tabs-border-color: $gray-600;
+$nav-tabs-link-hover-border-color: $gray-600;
+$nav-tabs-link-active-border-color: $gray-600 $gray-600 $nav-tabs-link-active-bg;
+$code-color: $pink-200;
+:root {
+  --#{$variable-prefix}body-color: #{$body-color};
+  --#{$variable-prefix}body-bg: #{$body-bg};
+}
+@import "../../../node_modules/bootstrap/scss/bootstrap";
+// Add Bootstrap Callouts (nicer alert boxes)
+@import 'bs-callout.scss';
+/* #endregion Bootstrap */ 

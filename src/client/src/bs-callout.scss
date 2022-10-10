@@ -1,0 +1,103 @@
+// @import 'mixins';
+// @import 'variables';
+
+.bs-callout {
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid $card-border-color;
+  border-left-width: 5px;
+  border-radius: $border-radius;
+  background: $card-bg;
+}
+.bs-callout h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: normal;
+}
+.bs-callout p {
+  text-align: justify;
+}
+.bs-callout > *:last-child {
+  margin-bottom: 0;
+}
+.bs-callout code {
+  border-radius: 3px;
+}
+.bs-callout+.bs-callout {
+  margin-top: -5px;
+}
+.bs-callout-default {
+  border-left-color: #777;
+}
+.bs-callout-default h4,
+.bs-callout-default.bs-callout-faicon > i.fas:first-child,
+.bs-callout-default.bs-callout-faicon > i.far:first-child {
+  color: #777;
+}
+.bs-callout-primary {
+  border-left-color: #428bca;
+}
+.bs-callout-primary h4,
+.bs-callout-primary.bs-callout-faicon > i.fas:first-child,
+.bs-callout-primary.bs-callout-faicon > i.far:first-child {
+  color: #428bca;
+}
+.bs-callout-success {
+  border-left-color: #5cb85c;
+}
+.bs-callout-success h4,
+.bs-callout-success.bs-callout-faicon > i.fas:first-child,
+.bs-callout-success.bs-callout-faicon > i.far:first-child {
+  color: #5cb85c;
+}
+.bs-callout-danger {
+  border-left-color: #d9534f;
+}
+.bs-callout-danger h4,
+.bs-callout-danger.bs-callout-faicon > i.fas:first-child,
+.bs-callout-danger.bs-callout-faicon > i.far:first-child {
+  color: #d9534f;
+}
+.bs-callout-warning {
+  border-left-color: #f0ad4e;
+}
+.bs-callout-warning h4,
+.bs-callout-warning.bs-callout-faicon > i.fas:first-child,
+.bs-callout-warning.bs-callout-faicon > i.far:first-child {
+  color: #f0ad4e;
+}
+.bs-callout-info {
+  border-left-color: #5bc0de;
+}
+.bs-callout-info h4,
+.bs-callout-info.bs-callout-faicon > i.fas:first-child,
+.bs-callout-info.bs-callout-faicon > i.far:first-child {
+  color: #5bc0de;
+}
+
+.bs-callout-faicon > i.fas:first-child,
+.bs-callout-faicon > i.far:first-child {
+  font-size: 40px;
+  float: left;
+
+  @include media-breakpoint-down(sm) {
+    display: none;
+  }
+
+}
+
+
+@include media-breakpoint-up(md) {
+  .bs-callout-faicon > div,
+  .bs-callout-faicon > ul,
+  .bs-callout-faicon > ol,
+  .bs-callout-faicon > h4,
+  .bs-callout-faicon > p {
+    margin-left: 70px;
+  }
+
+  .bs-callout-faicon {
+    min-height: 82px;
+  }
+}
+
