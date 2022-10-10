@@ -1,7 +1,8 @@
 <div class="container" *ngIf="documents">
   <h1 class="display-6">Existing documents</h1>
 
-  <table class="table table-sm">
+  <!-- List of document -->
+  <table class="table table-sm" *ngIf="documents.length > 0">
     <thead>
       <th>Document Title</th>
       <th>Created</th>
@@ -17,4 +18,10 @@
       </tr>
     </tbody>
   </table>
+
+  <!-- No document available -->
+  <div class="bs-callout bs-callout-info" *ngIf="documents.length === 0">
+    <h4>No document exists</h4>
+    <p><a routerLink="/document">Create new</a> anytime.</p>
+  </div>
 </div>
