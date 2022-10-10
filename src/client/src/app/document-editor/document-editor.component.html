@@ -6,9 +6,16 @@
         <button type="button" class="btn btn-lg btn-primary" (click)="save()">Save</button>
       </div>
 
-      <!-- Title -->
+      <!-- Warning: Notes are exists -->
+      <div class="bs-callout bs-callout-warning my-4 py-2" *ngIf="uiTabIndex !== 2 && showNotesWarning">
+        Before document edit please
+        <button class="btn btn-sm btn-outline-secondary" (click)="seeNotes()">see notes</button>
+        first!
+      </div>
+
+      <!-- Document Title -->
       <div class="my-4">
-        <label class="form-label form-label-lg text-end">Title:</label>
+        <label class="form-label form-label-lg text-end">Document Title:</label>
         <input
           type="text"
           id="title"
@@ -50,7 +57,7 @@
       <div class="card my-4" *ngIf="uiTabIndex === 1">
         <h6 class="card-header">Schema</h6>
         <div class="card-body">
-          <div class="form-text my-0">
+          <div class="small my-0">
             Schema is optional. If schema entered, then document contents is validated agains it during editation and on save. If
             no schema entered, then document contents can have any non-limited structure.
           </div>
@@ -67,25 +74,23 @@
       <div class="card my-4" *ngIf="uiTabIndex === 2">
         <h6 class="card-header">Notes</h6>
         <div class="card-body">
-          <div class="form-text my-0">
+          <div class="small my-0">
             Notes is free text for internal purpose only. Visible is in this managements system only. Not published via API.
           </div>
         </div>
       </div>
 
       <!-- Info about API endpoint -->
-      <div class="alert alert-info my-5" *ngIf="document.id">
-        <div class="panel-body text-center">
-          <h6 class="mb-0">JSON document is available on public API:</h6>
-          <p>
-            <code>GET {{ getApiUrl(document.id) }}</code>
-          </p>
+      <div class="bs-callout bs-callout-info text-center my-4 py-2" *ngIf="document.id">
+        <h6 class="mb-0">JSON document is available on public API:</h6>
+        <p class="text-center">
+          <code>GET {{ getApiUrl(document.id) }}</code>
+        </p>
 
-          <h6 class="mb-0">Document ID</h6>
-          <p>
-            <code>{{ document.id }}</code>
-          </p>
-        </div>
+        <h6 class="mb-0">Document ID</h6>
+        <p class="text-center mb-0">
+          <code>{{ document.id }}</code>
+        </p>
       </div>
     </div>
 
@@ -94,13 +99,13 @@
         <!-- TODO migrate into ng-bootstrap (but it is not ready for Angular 14 yet) -->
         <ul class="nav nav-tabs">
           <li class="nav-item">
-            <a class="nav-link" [class.active]="uiTabIndex === 0" (click)="changeEditorTab(0)">Document Contents</a>
+            <a class="nav-link" [class.active]="uiTabIndex === 0" (click)="changeEditorTab('contents')">Document Contents</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" [class.active]="uiTabIndex === 1" (click)="changeEditorTab(1)">JSON Validation Shema</a>
+            <a class="nav-link" [class.active]="uiTabIndex === 1" (click)="changeEditorTab('schema')">JSON Validation Shema</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" [class.active]="uiTabIndex === 2" (click)="changeEditorTab(2)">Notes</a>
+            <a class="nav-link" [class.active]="uiTabIndex === 2" (click)="changeEditorTab('notes')">Notes</a>
           </li>
         </ul>
 

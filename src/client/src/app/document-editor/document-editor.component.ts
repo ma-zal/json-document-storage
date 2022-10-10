@@ -63,6 +63,8 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     tabSize: 2,
   };
 
+  showNotesWarning: boolean = false;
+
   public document: EditedDocument = {
     ...emptyDocument,
     write_password: ''
@@ -172,7 +174,6 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
             title: document.title,
             write_password: '',
           };
-          this.cdr.detectChanges();
           // Create models in Monaco
           monacoEditorService.setModelValue(document.contents_raw, 'json', this.CONTENTS_MODEL_URI);
           monacoEditorService.setModelValue(document.notes, undefined, this.NOTES_MODEL_URI);
@@ -181,6 +182,11 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
           // Start the contents validation agains schema.
           this.useContentsSchema(stringifiedSchema);
           monacoEditorService.switchMonacoEditorModel(this.CONTENTS_MODEL_URI, this.savedStates);
+          // Show/hide notes warning dialog
+          console.log(/^[\s]*$/.test(document.notes), document.notes);
+          this.showNotesWarning = !(/^[\s]*$/.test(document.notes));  // Show if notes is filled
+
+          this.cdr.detectChanges();
         },
         error: (err: Error) => {
           this.sweetalertService.displayError(err);
@@ -360,22 +366,33 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     this.monacoEditorService.setModelValue(stringifiedGeneratedSchema, 'json', this.SCHEMA_MODEL_URI);
   }
 
-  changeEditorTab(targetTabIndex: number) {
-    switch (targetTabIndex) {
-      case 0:
+  changeEditorTab(targetTab: 'contents'|'schema'|'notes') {
+    switch (targetTab) {
+      case 'contents':
         if (this.uiTabIndex === 1) {
           this.applySchemaFromEditor();
         }
         this.monacoEditorService.switchMonacoEditorModel(this.CONTENTS_MODEL_URI, this.savedStates);
+        this.uiTabIndex = 0;
         break;
-      case 1:
+      case 'schema':
         this.monacoEditorService.switchMonacoEditorModel(this.SCHEMA_MODEL_URI, this.savedStates);
+        this.uiTabIndex = 1;
         break;
-      case 2:
+      case 'notes':
         this.monacoEditorService.switchMonacoEditorModel(this.NOTES_MODEL_URI, this.savedStates)
+        this.uiTabIndex = 2;
         break;
     }
-    this.uiTabIndex = targetTabIndex;
+  }
+
+  /**
+   * Show notes tab and hide the warning.
+   */
+  seeNotes() {
+    this.changeEditorTab('notes');
+    this.showNotesWarning = false;
+    this.cdr.detectChanges();
   }
 }
 
