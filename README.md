@@ -62,3 +62,61 @@ If 3rd party reverse proxy is being used, you can protect anyhow a document chan
  - /api/manage/*
  - /manage/*
  
+Local development
+-----------------
+
+If you would like to run or develop app locally on your computer, follow instuctions below.
+
+### Prerequisites
+
+- NodeJS 18+ installed.
+- Yarn installed (recommended, but `npm` can be also used as alternative).
+- Cloned GIT project.
+- `yarn install` in project root.
+
+Run in parallel on local machine:
+
+1) Postgres database
+2) Server NodeJS backend
+3) Angular client app
+
+### More to "Postgres database"
+
+Application expects that empty database `jsondocumentstorage` will be created.
+
+Note: Tables will be created by app itself on first app start.
+
+### More to "Server NodeJS backend"
+
+App expects these default database parameter:
+
+- type: Postgres
+- host: `localhost`
+- port: `5432`
+- database: `jsondocumentstorage`
+- username: `jsondocumentstorage`
+- password: /empty/
+
+Default database connection parameters can be overriden by OS system variables:
+
+- `POSTGRES_HOST`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+
+Run backend by:
+
+```bash
+cd src/server
+yarn dev
+```
+
+### More to "Angular client app"
+
+Run frontend by:
+
+```bash
+cd src/client
+yarn ng serve
+```
+Then the frontend is available on `http://localhost:4200/manage`.
