@@ -88,10 +88,12 @@ export async function upsertDocument(document: JsonDocumentToSave, currentWriteP
     existingDocument.updated_at = new Date();
 
     // Change write password (if entered new one)
-    if (typeof document.write_password_bcrypted === 'string' && document.write_password_bcrypted !== '') {
-      // Check if string has bcrypt format
-      checkBcryptFormat(document.write_password_bcrypted);
-      // OK, change the password
+    if (typeof document.write_password_bcrypted === 'string') {
+      // Check if string has bcrypt format (Note: '' === request to remove password).
+      if (document.write_password_bcrypted !== '') {
+        checkBcryptFormat(document.write_password_bcrypted);
+      }
+      // OK, change or remove the password
       existingDocument.write_password_bcrypted = document.write_password_bcrypted;
     }
     await db.getRepository(JsonDocumentDbEntity).save(existingDocument);

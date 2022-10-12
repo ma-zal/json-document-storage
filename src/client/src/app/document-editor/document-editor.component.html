@@ -14,7 +14,7 @@
       </div>
 
       <!-- Document Title -->
-      <div class="my-4">
+      <div class="mb-4">
         <label class="form-label form-label-lg text-end">Document Title:</label>
         <input
           type="text"
@@ -28,28 +28,58 @@
         />
       </div>
 
-      <div class="my-4">
-        <label for="write_password" class="form-label">
-          <ng-container *ngIf="document.id">Change </ng-container>
-          Write-protection password
-          <ng-container *ngIf="document.id">to:</ng-container>
-        </label>
-        <input
-          type="password"
-          class="form-control"
-          id="write_password"
-          [(ngModel)]="document.write_password"
-          [ngModelOptions]="{ standalone: true }"
-          aria-describedby="writePasswordHelp"
-          autocomplete="new-password"
-        />
-        <div id="writePasswordHelp" class="form-text" *ngIf="!document.id">
-          Enter any string during document creation and store it in private. It is required to grand any document update.
-          <br />
-          If kept empty, then document can be updated without by anybody without any authorization.
+      <!-- Password Change dialog -->
+      <div class="my-2" [class.card]="formPassword.changePassword">
+        <div [class.card-header]="formPassword.changePassword">
+          <div class="form-check">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              value=""
+              id="changePassword"
+              [(ngModel)]="formPassword.changePassword"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            <label class="form-check-label" for="changePassword">
+              <ng-container *ngIf="document.id">Change </ng-container>
+              Write-protection password
+            </label>
+          </div>
         </div>
-        <div id="writePasswordHelp" class="form-text" *ngIf="document.id">
-          If kept empty, then no password will stay without any change.
+
+        <div class="card-body" *ngIf="formPassword.changePassword">
+          <div class="mb-2">
+            <label for="write_password" class="form-label"> New password: </label>
+            <input
+              type="password"
+              class="form-control"
+              id="write_password"
+              [(ngModel)]="formPassword.newPassword1"
+              [ngModelOptions]="{ standalone: true }"
+              aria-describedby="writePasswordHelp"
+              autocomplete="new-password"
+            />
+          </div>
+          <div>
+            <label for="write_password2" class="form-label"> Confirm new password: </label>
+            <input
+              type="password"
+              class="form-control"
+              id="write_password2"
+              [(ngModel)]="formPassword.newPassword2"
+              [ngModelOptions]="{ standalone: true }"
+              aria-describedby="writePasswordHelp"
+              autocomplete="new-password"
+            />
+            <div id="writePasswordHelp" class="form-text" *ngIf="!document.id">
+              Enter any string during document creation and store it in private. It is required to grant any document update.
+              <br />
+              If kept empty, then document can be updated without by anybody without any authorization.
+            </div>
+            <div id="writePasswordHelp" class="form-text" *ngIf="document.id">
+              If kept empty, then password will be removed and not used.
+            </div>
+          </div>
         </div>
       </div>
 

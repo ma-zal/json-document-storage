@@ -18,7 +18,7 @@ const FAKE_FILENAME_CONTENTS = 'contents.json';
 const FAKE_FILENAME_SCHEMA = 'myschema.json'
 const FAKE_FILENAME_NOTES = 'notes.txt'
 
-const emptyDocument: JsonDocumentToSave = {
+const emptyDocument: LoadedOrNewJSONDocument = {
   id: null,
   title: '',
   notes: '',
@@ -26,7 +26,6 @@ const emptyDocument: JsonDocumentToSave = {
     "welcomeTo": "JSON document store",
   }, null, 2) + '\n',
   schema: null,
-  write_password_bcrypted: ''
 };
 
 @Component({
@@ -65,10 +64,18 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
   showNotesWarning: boolean = false;
 
+  /** Bind by ngModel to UI form. */
   public document: EditedDocument = {
-    ...emptyDocument,
-    write_password: ''
+    id: null,
+    title: '',
   };
+
+  /** Bind by ngModel to UI form. */
+  public formPassword = {
+    changePassword: false,
+    newPassword1: '',
+    newPassword2: '',
+  }
 
   constructor(
     private activeRoute: ActivatedRoute,
@@ -141,7 +148,6 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
               schema: existingDocument.schema,
               title: existingDocument.title,
               notes: existingDocument.notes,
-              write_password_bcrypted: ''
             }))
           );
         } else if (documentId === undefined) {
@@ -172,7 +178,6 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
           this.document = {
             id: document.id,
             title: document.title,
-            write_password: '',
           };
           // Create models in Monaco
           monacoEditorService.setModelValue(document.contents_raw, 'json', this.CONTENTS_MODEL_URI);
@@ -228,10 +233,25 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       parseDocument(contents_raw, schema);
 
       // Encrypt the new `write password` (if user entered it).
-      let writePasswordBcrypted: string | null = null;
-      if (typeof this.document.write_password === 'string' && this.document.write_password !== '') {
-        const salt = await bcrypt.genSalt(10);
-        writePasswordBcrypted = await bcrypt.hash(this.document.write_password, salt);
+      /**
+       * `undefined` ==> Do not change password  
+       * EMPTY_STRING ==> Remove password
+       */
+      let writePasswordBcrypted: string | undefined = undefined; 
+      if (this.formPassword.changePassword) {
+        // Check if both new passwords are same.
+        if (this.formPassword.newPassword1 !== this.formPassword.newPassword2) {
+          throw new Error('Entered new password does not match with confirm one.');
+        }
+
+        if (this.formPassword.newPassword1 !== '') {
+          // Set/change write-protection password
+          const salt = await bcrypt.genSalt(10);
+          writePasswordBcrypted = await bcrypt.hash(this.formPassword.newPassword1, salt);
+        } else {
+          // Remove write-protection password
+          writePasswordBcrypted = '';
+        }
       }
 
       return this.uploadDocumentToServer(<JsonDocumentToSave>{
@@ -244,17 +264,18 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       });
     }).subscribe({
       next: (document) => {
-        this.document.id = document.id;
         this.sweetalertService.closePopup();
 
         // Route to document editation (used, when stored a new document).
         if (!this.activeRoute.snapshot.params['documentId']) {
-          this.router.navigate(['/document', this.document.id]);
+          this.router.navigate(['/document', document.id]);
         }
       },
       complete: () => {
         // Remove last entered password to change.
-        this.document.write_password = '';
+        this.formPassword.changePassword = false;
+        this.formPassword.newPassword1 = '';
+        this.formPassword.newPassword2 = '';
 
         this.sweetalertService.swal.fire({
           title: 'Saved.',
@@ -424,6 +445,6 @@ function fixSchemaBug(schema: any): void {
 }
 
 
-interface EditedDocument extends Omit<JsonDocumentToSave, 'schema'|'notes'|'contents_raw'|'write_password_bcrypted'> {
-  write_password: string;
-}
+interface EditedDocument extends Omit<JsonDocumentToSave, 'schema'|'notes'|'contents_raw'|'write_password_bcrypted'> {}
+
+type LoadedOrNewJSONDocument = Omit<JsonDocumentToSave, 'write_password_bcrypted'>;
