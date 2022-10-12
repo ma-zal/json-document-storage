@@ -1,4 +1,4 @@
-import Ajv from 'ajv';
+import Ajv, { ValidateFunction, ErrorObject } from 'ajv';
 import * as JSON5 from 'json5';
 
 /**
@@ -18,13 +18,21 @@ export function parseDocument(documentRaw: string, schema: any|null): any {
 
   // Validate agains JSON schema
   if (schema) {
-    const ajvInstance = new Ajv({});
-    const validator = ajvInstance.compile(schema);
+    let validator: ValidateFunction;
+    try {
+      const ajvInstance = new Ajv({});
+      validator = ajvInstance.compile(schema);
+    } catch (e: any) {
+      e.message = `JSON schema has incorrect stucture. ${e.message}`;
+      throw e;
+    }
     const isValid = validator(contents);
     if (!isValid) {
       throw new Error(
-        'Document is not valid, because it does not fullfill the schema. ' +
-        JSON5.stringify(validator.errors, null, 2)
+        'Document is not valid, because it does not fullfill the schema. \n\n' +
+        validator.errors?.map((validatorError: ErrorObject) => (
+          'Invalid data in ' + validatorError.instancePath + ': ' + validatorError.message
+        )).join('\n')
       );
     }
   }

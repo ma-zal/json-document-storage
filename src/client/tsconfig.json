@@ -21,7 +21,7 @@
     "allowJs": true, // For import of URI of monaco-editor
     "resolveJsonModule": true, // For import JSON with JSON schema definition
     "lib": [
-      "es2020",
+      "ES2021",
       "dom"
     ],
     "paths": {

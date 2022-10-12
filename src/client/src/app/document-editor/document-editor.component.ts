@@ -2,7 +2,7 @@ import * as JSON5 from 'json5';
 import * as bcrypt from 'bcryptjs';
 import { URI } from 'monaco-editor/esm/vs/base/common/uri';
 import { editor as MonacoEditor, languages as MonacoLanguages } from 'monaco-editor';
-import { catchError, combineLatest, defer, first, firstValueFrom, from, map, of, ReplaySubject, Subject, switchMap, tap } from 'rxjs';
+import { catchError, combineLatest, defer, first, firstValueFrom, map, of, ReplaySubject, Subject, switchMap, tap } from 'rxjs';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { default as jsonSchemaDraft07 } from 'ajv/lib/refs/json-schema-draft-07.json';
@@ -100,7 +100,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       const schemas = [
         // Meta schema
         {
-          uri: 'http://local/myschema-schema.json',  // TODO Is it needed?
+          uri: 'http://json-schema.org/draft-07/schema#',
           fileMatch: [FAKE_FILENAME_SCHEMA], // Associate with schema editor
           schema: jsonSchemaDraft07
         },,
@@ -183,7 +183,6 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
           this.useContentsSchema(stringifiedSchema);
           monacoEditorService.switchMonacoEditorModel(this.CONTENTS_MODEL_URI, this.savedStates);
           // Show/hide notes warning dialog
-          console.log(/^[\s]*$/.test(document.notes), document.notes);
           this.showNotesWarning = !(/^[\s]*$/.test(document.notes));  // Show if notes is filled
 
           this.cdr.detectChanges();
@@ -266,7 +265,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       },
       // Error catch
       error: (err: Error) => {
-        err.message = 'Document was not saved. Error reason: ' + err.message;
+        err.message = 'Document was not saved. ' + err.message;
         this.sweetalertService.displayError(err);
     }});
   }

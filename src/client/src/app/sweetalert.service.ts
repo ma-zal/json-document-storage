@@ -33,9 +33,10 @@ export class SweetalertService {
   }
 
   displayError(err: Error) {
+    const htmlError = this.intoHtml(err.message);
     return this.swal.fire({
       title: 'Error occured',
-      text: err.message,
+      html: htmlError,
       icon: 'error',
     });
   }
@@ -45,5 +46,18 @@ export class SweetalertService {
    */
   closePopup() {
     return this.swal.close();
+  }
+
+  /**
+   * Converts plaintext into HTML.
+   */
+  private intoHtml(plain: string): string {
+    return plain
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;')
+      .replaceAll('\n', '<br />')
   }
 }
