@@ -1,4 +1,5 @@
 import Ajv, { ValidateFunction, ErrorObject } from 'ajv';
+import addFormats from "ajv-formats";
 import * as JSON5 from 'json5';
 
 /**
@@ -21,6 +22,7 @@ export function parseDocument(documentRaw: string, schema: any|null): any {
     let validator: ValidateFunction;
     try {
       const ajvInstance = new Ajv({});
+      addFormats(ajvInstance);
       validator = ajvInstance.compile(schema);
     } catch (e: any) {
       e.message = `JSON schema has incorrect stucture. ${e.message}`;
