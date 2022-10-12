@@ -317,6 +317,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
           autocorrect: 'off'
         },
         confirmButtonText: 'Save document',
+        showCancelButton: true,
       });
       if (password) {
         // Next try to save with password
