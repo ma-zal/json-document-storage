@@ -20,7 +20,7 @@ services:
         no_proxy: ${no_proxy}       # variable passed from host shell
 
   postgres:
-    image: postgres:15beta4-alpine
+    image: postgres:15-alpine
     restart: unless-stopped
     networks:
       - json-document-storage
