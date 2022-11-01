@@ -1,0 +1,124 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Built Docker image
+
+on:
+  push:
+    branches: [ "master", "development", "testing" ]
+
+
+jobs:
+  build-docker-image:
+    runs-on: ubuntu-22.04  # Or use "ubuntu-latest" as alternative
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set job's global variables
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_date=$(date -d @$(git show -s --format=%ct ${{github.sha}}) +%Y.%m.%d)" >> $GITHUB_OUTPUT
+          echo "branch_docker_tag=${{ ('refs/heads/master' == github.ref && 'stable') || (startsWith(github.ref, 'refs/heads/') && github.ref_name != 'master' && github.ref_name) || '' }}" >> $GITHUB_OUTPUT
+
+      - name: Set job's global variables 2
+        id: vars2
+        run: |
+          echo "app_version=${{ steps.vars.outputs.commit_date }}${{ github.ref_name != 'master' && (github.ref_name && format('-{0}', github.ref_name) || '-no-branch') || '' }}" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+
+      ## region Alternative build because of slow Buildx
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Set the Yarn offline mirror directory
+        run: |
+          yarn config set yarn-offline-mirror ${{github.workspace}}/npm-packages-offline-cache
+
+      - name: Cache the Yarn offline mirror files
+        uses: actions/cache@v3
+        with:
+          path: npm-packages-offline-cache
+          key: yarn-offline-cache
+
+      - name: Install dependencies
+        run: |
+          cd ${{github.workspace}}
+          yarn install --non-interactive --frozen-lockfile
+
+      - name: Build client Angular app
+        run: |
+          cd ${{github.workspace}}/src/client
+          yarn build
+
+      - name: Build server Node.js app from TypeScript
+        run: |
+          cd ${{github.workspace}}/src/server
+          yarn build
+
+      - name: Allow additional files/dirs into Docker building
+        run: |
+          echo "!dist" >> .dockerignore
+          echo "!npm-packages-offline-cache" >> .dockerignore
+          echo "!package.json" >> .dockerignore
+          echo "!yarn.lock" >> .dockerignore
+          
+      ## endregion
+
+      - name: Log in to the GitHub Docker registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: Dockerfile-github-workflow
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.branch_docker_tag && format('ghcr.io/{0}:{1}', github.repository, steps.vars.outputs.branch_docker_tag) || '' }}
+            ghcr.io/${{ github.repository }}:${{ steps.vars2.outputs.app_version }}
+          labels: |
+            org.opencontainers.image.url=https://github.com/${{github.repository}}
+            org.opencontainers.image.source=https://github.com/${{github.repository}}
+            org.opencontainers.image.version=${{ steps.vars2.outputs.app_version }}
+            org.opencontainers.image.authors=Martin Zaloudek, zal.cz
+            org.opencontainers.image.revision=${{github.sha}}
+
+  cleanup-old-docker-images:
+    needs: build-docker-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup the old Docker images
+        uses: davahome/ghcr-cleanup@v1.1
+        with:
+          # The regular ${{ GITHUB_TOKEN }} is not enough because there is no "packages:delete" permission.
+          # Create a separate token and store it as a secret (see required permissions at the bottom of this README)
+          token: ${{ secrets.DELETE_PACKAGES_TOKEN }}
+
+          # Define the name of the package (e.g. "thedava/example" would be "example")
+          package: json-document-storage
+
+          # Define the owner (it's either literally "user" or "orgs/<Your Org>")
+          owner: user
+          #owner: orgs/davahome -- Use this for organization packages
+
+          # Configure cleanup of tagged versions
+          minimum_days: 2
+          keep_versions: 0
+          skip_tags: stable,development,testing

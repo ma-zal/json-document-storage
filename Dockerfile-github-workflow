@@ -1,0 +1,32 @@
+#############
+# This Dockerfile is used in GitHub docker building workflow action,
+# where most of app build is processed outside Docker
+# and provided as "dist" directory with almost final app.
+#
+# Reason: Docker is built under `buildx` which is very very slow.
+#############
+
+FROM node:18-alpine as build
+
+# Use cached dependency archives
+COPY npm-packages-offline-cache/ /npm-packages-offline-cache/
+# Install PROD dependencies
+COPY package.json yarn.lock /app/
+RUN yarn config set yarn-offline-mirror /npm-packages-offline-cache && \
+    cd /app && \
+    yarn install --network-timeout=100000 --non-interactive --prod --frozen-lockfile
+
+COPY dist/ /app/dist/
+
+
+# ---- Production build -----
+# Note: It is here because of we do need to have the /npm-packages-offline-cache/ dir in final image.
+
+FROM node:18-alpine as prod
+
+EXPOSE 3000/tcp
+
+COPY --from=build /app/ /app/
+
+WORKDIR /app/dist/server
+CMD ["node", "--enable-source-maps", "-r", "tsconfig-paths/register", "app"]
