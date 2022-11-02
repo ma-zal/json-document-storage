@@ -93,6 +93,7 @@ jobs:
           tags: |
             ${{ steps.vars.outputs.branch_docker_tag && format('ghcr.io/{0}:{1}', github.repository, steps.vars.outputs.branch_docker_tag) || '' }}
             ghcr.io/${{ github.repository }}:${{ steps.vars2.outputs.app_version }}
+            ghcr.io/${{ github.repository }}:${{ steps.vars2.outputs.app_version }}-${{steps.vars.outputs.sha_short}}
           labels: |
             org.opencontainers.image.url=https://github.com/${{github.repository}}
             org.opencontainers.image.source=https://github.com/${{github.repository}}
