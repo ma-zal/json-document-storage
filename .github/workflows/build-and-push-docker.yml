@@ -80,7 +80,7 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
@@ -101,25 +101,25 @@ jobs:
             org.opencontainers.image.authors=Martin Zaloudek, zal.cz
             org.opencontainers.image.revision=${{github.sha}}
 
-  cleanup-old-docker-images:
-    needs: build-docker-image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Cleanup the old Docker images
-        uses: davahome/ghcr-cleanup@v1.1
-        with:
-          # The regular ${{ GITHUB_TOKEN }} is not enough because there is no "packages:delete" permission.
-          # Create a separate token and store it as a secret (see required permissions at the bottom of this README)
-          token: ${{ secrets.DELETE_PACKAGES_TOKEN }}
+  # cleanup-old-docker-images:
+  #   needs: build-docker-image
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Cleanup the old Docker images
+  #       uses: davahome/ghcr-cleanup@v1.1
+  #       with:
+  #         # The regular ${{ GITHUB_TOKEN }} is not enough because there is no "packages:delete" permission.
+  #         # Create a separate token and store it as a secret (see required permissions at the bottom of this README)
+  #         token: ${{ secrets.DELETE_PACKAGES_TOKEN }}
 
-          # Define the name of the package (e.g. "thedava/example" would be "example")
-          package: json-document-storage
+  #         # Define the name of the package (e.g. "thedava/example" would be "example")
+  #         package: json-document-storage
 
-          # Define the owner (it's either literally "user" or "orgs/<Your Org>")
-          owner: user
-          #owner: orgs/davahome -- Use this for organization packages
+  #         # Define the owner (it's either literally "user" or "orgs/<Your Org>")
+  #         owner: user
+  #         #owner: orgs/davahome -- Use this for organization packages
 
-          # Configure cleanup of tagged versions
-          minimum_days: 2
-          keep_versions: 0
-          skip_tags: stable,development,testing
+  #         # Configure cleanup of tagged versions
+  #         minimum_days: 0
+  #         keep_versions: 0
+  #         skip_tags: stable,development,testing
