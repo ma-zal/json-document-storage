@@ -15,16 +15,19 @@ export function startHttpServer(app: Express) {
   httpServer.on('close', () => { console.info('HTTP webserver closed.'); });
 }
 
-/** Stop webserver on SIGINT (by docker container stop) */
-process.on('SIGINT', () => {
-  console.log('SIGINT received. Stopping HTTP webserver ...');
+function stopHttpServer() {
+  console.log('Stopping HTTP webserver ...');
   if (httpServer) {
     httpServer.close();
     httpServer = undefined;
   }
 
   if (!httpServer) {
-    console.log('HTTP webserver is already stopped. Killing the app forcibly.');
-    process.exit(100);
+    console.log('HTTP webserver is already stopped.');
+    // process.exit(1);
   }
-});
+}
+
+/** Stop webserver on terminal signals (by docker container stop) */
+process.on('SIGINT', stopHttpServer );
+process.on('SIGTERM', stopHttpServer );
