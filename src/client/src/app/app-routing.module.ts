@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { DocumentEditorComponent } from './document-editor/document-editor.component';
 import { DocumentsListComponent } from './documents-list/documents-list.component';
+import { WarningNonSavedGuard } from './warning-non-saved.guard';
 
 const routes: Routes = [
   {
@@ -11,10 +12,12 @@ const routes: Routes = [
   {
     path: 'document',
     component: DocumentEditorComponent,
+    canDeactivate: [WarningNonSavedGuard],
   },
   {
     path: 'document/:documentId',
     component: DocumentEditorComponent,
+    canDeactivate: [WarningNonSavedGuard],
   },
 ];
 
