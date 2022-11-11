@@ -9,16 +9,6 @@ export class MonacoEditorService {
 
   constructor() { }
 
-  public setModelValue(value: string, language: 'json'| undefined, uri: URI) {
-    const monacoEditor = this.getEditor();
-    const existingContentModel = monacoEditor.getModel(uri);
-    if (existingContentModel) {
-      existingContentModel.setValue(value);
-    } else {
-      monacoEditor.createModel(value, language, uri);
-    }
-  }
-
   public getModelEditorValue(uri: URI) {
     const monacoEditor = this.getEditor();
     const model = monacoEditor.getModel(uri);
@@ -33,9 +23,11 @@ export class MonacoEditorService {
    * @param savedStates This object is not a part of service, but should be part of component,
    *                     because it should be destroyed on component destroy.
    */
-  public switchMonacoEditorModel(targetModelUri: URI, savedStates: Record<string, MonacoEditor.ICodeEditorViewState>) {
+  public switchMonacoEditorModel(editorInstance: MonacoEditor.IStandaloneCodeEditor|undefined, targetModelUri: URI, savedStates: Record<string, MonacoEditor.ICodeEditorViewState>) {
+    if (!editorInstance) {
+      return;  // Ignore action. Nothing to do.
+    }
     const editor = this.getEditor();
-    const editorInstance = editor.getEditors()[0];
     const currentModel = editorInstance.getModel();
     if (!currentModel) {
       return;
@@ -46,7 +38,7 @@ export class MonacoEditorService {
       return;
     }
     // Save current editor state for future restoration
-    const currentViewState = editor.getEditors()[0].saveViewState();
+    const currentViewState = editorInstance.saveViewState();
     if (currentViewState) {
       savedStates[currentUriString] = currentViewState;
     }

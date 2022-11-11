@@ -2,9 +2,11 @@ import * as JSON5 from 'json5';
 import * as bcrypt from 'bcryptjs';
 import { URI } from 'monaco-editor/esm/vs/base/common/uri';
 import { editor as MonacoEditor, languages as MonacoLanguages } from 'monaco-editor';
-import { catchError, combineLatest, defer, first, firstValueFrom, map, of, ReplaySubject, Subject, switchMap, tap } from 'rxjs';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { BehaviorSubject, catchError, combineLatest, defer, first, firstValueFrom, map, Observable, of, ReplaySubject, Subject, switchMap, tap } from 'rxjs';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, AfterViewInit, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FormGroup, FormControl } from '@angular/forms';
+import loader from '@monaco-editor/loader';
 import { default as jsonSchemaDraft07 } from 'ajv/lib/refs/json-schema-draft-07.json';
 import * as toJsonSchema from 'to-json-schema';
 import { parseDocument } from '@common/document-parse';
@@ -33,10 +35,14 @@ const emptyDocument: LoadedOrNewJSONDocument = {
   templateUrl: './document-editor.component.html',
   styleUrls: ['./document-editor.component.scss']
 })
-export class DocumentEditorComponent implements OnInit, OnDestroy {
+export class DocumentEditorComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('monacoEditorDiv') monacoEditorDiv!: ElementRef;
+
   public CONTENTS_MODEL_URI = URI.parse(`file:///${FAKE_FILENAME_CONTENTS}`);
   public SCHEMA_MODEL_URI = URI.parse(`file:///${FAKE_FILENAME_SCHEMA}`);
   public NOTES_MODEL_URI = URI.parse(`file:///${FAKE_FILENAME_NOTES}`);
+
+  private editorInstance: MonacoEditor.IStandaloneCodeEditor|undefined;
 
   /** Saved states of Monaco Editor tabs */
   savedStates: Record<string, MonacoEditor.ICodeEditorViewState> = {};
@@ -62,20 +68,19 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     tabSize: 2,
   };
 
-  showNotesWarning: boolean = false;
+  showNotesWarning$ = new BehaviorSubject(false);
 
-  /** Bind by ngModel to UI form. */
-  public document: EditedDocument = {
-    id: null,
-    title: '',
-  };
+  form = new FormGroup({
+    id: new FormControl<string|null>(null),
+    title: new FormControl<string>('', { nonNullable: true }),
+    changePassword: new FormControl<boolean>(false, { nonNullable: true }),
+    newPassword1: new FormControl<string>('', { nonNullable: true }),
+    newPassword2: new FormControl<string>('', { nonNullable: true }),
+    content_raw: new FormControl<string>('', { nonNullable: true }),
+    notes: new FormControl<string>('', { nonNullable: true }),
+    schema_raw: new FormControl<string>('', { nonNullable: true }),
+  });
 
-  /** Bind by ngModel to UI form. */
-  public formPassword = {
-    changePassword: false,
-    newPassword1: '',
-    newPassword2: '',
-  }
 
   constructor(
     private activeRoute: ActivatedRoute,
@@ -169,28 +174,33 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     ).subscribe({
         next: (document) => {
           this.sweetalertService.closePopup();
+
           // [Disabled] Generate a random write password for new documents
           // if (!document.id) {
           //   this.document.write_password = cryptoRandomString({length: 16, type: 'alphanumeric'});;
           // }
 
+          const stringifiedSchema = document.schema ? JSON.stringify(document.schema, null, 2) : '';
+
           // Push loaded/new document into form
-          this.document = {
+          this.form.patchValue({
             id: document.id,
             title: document.title,
-          };
-          // Create models in Monaco
-          monacoEditorService.setModelValue(document.contents_raw, 'json', this.CONTENTS_MODEL_URI);
-          monacoEditorService.setModelValue(document.notes, undefined, this.NOTES_MODEL_URI);
-          const stringifiedSchema = document.schema ? JSON.stringify(document.schema, null, 2) : '';
-          monacoEditorService.setModelValue(stringifiedSchema, 'json', this.SCHEMA_MODEL_URI);
+            content_raw: document.contents_raw,
+            notes: document.notes,
+            schema_raw: stringifiedSchema,
+          });
+
           // Start the contents validation agains schema.
           this.useContentsSchema(stringifiedSchema);
-          monacoEditorService.switchMonacoEditorModel(this.CONTENTS_MODEL_URI, this.savedStates);
+          monacoEditorService.switchMonacoEditorModel(this.editorInstance, this.CONTENTS_MODEL_URI, this.savedStates);
           // Show/hide notes warning dialog
-          this.showNotesWarning = !(/^[\s]*$/.test(document.notes));  // Show if notes is filled
+          this.showNotesWarning$.next(!(/^[\s]*$/.test(document.notes)));  // Show if notes is filled
 
-          this.cdr.detectChanges();
+          // Fresh data has been loaded just now. Therefore reset the dirty flag.
+          this.form.markAsPristine();
+
+          this.cdr.detectChanges();  // TODO Fix something other to be able to remove this line.
         },
         error: (err: Error) => {
           this.sweetalertService.displayError(err);
@@ -199,11 +209,20 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   }
 
 
-  ngOnInit(): void { }
+  async ngAfterViewInit() {
+    await this.initAndConfigMonaco();
+  }
+
 
   ngOnDestroy(): void {
     this.contentsSchemaUpdater$.complete();
     this.monacoInitialized$.complete();
+
+    // Remove all existing Editor models
+    const editor = this.monacoEditorService.getEditor();
+    editor.getModel(this.CONTENTS_MODEL_URI)?.dispose();
+    editor.getModel(this.NOTES_MODEL_URI)?.dispose();
+    editor.getModel(this.SCHEMA_MODEL_URI)?.dispose();
   }
 
   /**
@@ -238,16 +257,16 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
        * EMPTY_STRING ==> Remove password
        */
       let writePasswordBcrypted: string | undefined = undefined; 
-      if (this.formPassword.changePassword) {
+      if (this.form.value.changePassword) {
         // Check if both new passwords are same.
-        if (this.formPassword.newPassword1 !== this.formPassword.newPassword2) {
+        if (this.form.value.newPassword1 !== this.form.value.newPassword2) {
           throw new Error('Entered new password does not match with confirm one.');
         }
 
-        if (this.formPassword.newPassword1 !== '') {
+        if (this.form.value.newPassword1 !== '') {
           // Set/change write-protection password
           const salt = await bcrypt.genSalt(10);
-          writePasswordBcrypted = await bcrypt.hash(this.formPassword.newPassword1, salt);
+          writePasswordBcrypted = await bcrypt.hash(this.form.value.newPassword1!, salt);
         } else {
           // Remove write-protection password
           writePasswordBcrypted = '';
@@ -255,8 +274,8 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       }
 
       return this.uploadDocumentToServer(<JsonDocumentToSave>{
-        id: this.document.id,
-        title: this.document.title,
+        id: this.form.value.id,
+        title: this.form.value.title,
         notes: notes,
         contents_raw: contents_raw,
         schema: schema,
@@ -273,9 +292,14 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
       },
       complete: () => {
         // Remove last entered password to change.
-        this.formPassword.changePassword = false;
-        this.formPassword.newPassword1 = '';
-        this.formPassword.newPassword2 = '';
+        this.form.patchValue({
+          changePassword: false,
+          newPassword1: '',
+          newPassword2: '',
+        });
+
+        // Clean "dirty" flag.
+        this.form.markAsPristine();
 
         this.sweetalertService.swal.fire({
           title: 'Saved.',
@@ -333,13 +357,59 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
   }
 
   // Set MonacoEditor
-  onMonacoInit(editor: any) {
-    (window as any).monaco.languages.json.jsonDefaults.setDiagnosticsOptions(<MonacoLanguages.json.DiagnosticsOptions>{
+  async initAndConfigMonaco() {
+    const monaco = await loader.init();  // === window.monaco
+    this.editorInstance = monaco.editor.create(this.monacoEditorDiv.nativeElement, this.editorOptions);
+
+    monaco.languages.json.jsonDefaults.setDiagnosticsOptions(<MonacoLanguages.json.DiagnosticsOptions>{
       allowComments: true,
       trailingCommas: 'ignore',
     });
+
+    const editor = this.monacoEditorService.getEditor();
+    // Clean old models (if not cleaned during last controlled destroy).
+    editor.getModel(this.CONTENTS_MODEL_URI)?.dispose();
+    editor.getModel(this.NOTES_MODEL_URI)?.dispose();
+    editor.getModel(this.SCHEMA_MODEL_URI)?.dispose();
+    // Create model for each "file" (and remove old one).
+    const contentModel = editor.createModel('', 'json', this.CONTENTS_MODEL_URI);
+    const notesModel = editor.createModel('', undefined, this.NOTES_MODEL_URI);
+    const schemaModel = editor.createModel('', 'json', this.SCHEMA_MODEL_URI);
+
+    // Map editor changes into reactive form.
+    contentModel.onDidChangeContent((event: MonacoEditor.IModelContentChangedEvent) => {
+      this.form.controls.content_raw.setValue(contentModel.getValue(), {emitEvent: false});
+      this.form.markAsDirty();
+    });
+    notesModel.onDidChangeContent(() => {
+      this.form.controls.notes.setValue(notesModel.getValue(), {emitEvent: false});
+      this.form.markAsDirty();
+    });
+    schemaModel.onDidChangeContent(() => {
+      this.form.controls.schema_raw.setValue(schemaModel.getValue(), {emitEvent: false});
+      this.form.markAsDirty();
+    });
+
+    // Map Reactive form changes into Monaco editor
+    this.form.controls.content_raw.registerOnChange((value: string) => {
+      if (contentModel.getValue() !== value) {
+        contentModel.setValue(value);
+      }
+    });
+    this.form.controls.notes.registerOnChange((value: string) => {
+      if (notesModel.getValue() !== value) {
+        notesModel.setValue(value);
+      }
+    });
+    this.form.controls.schema_raw.registerOnChange((value: string) => {
+      if (schemaModel.getValue() !== value) {
+        schemaModel.setValue(value);
+      }
+    });
+
     this.monacoInitialized$.next();
   }
+
 
   useContentsSchema(schema: string) {
     this.contentsSchemaUpdater$.next(schema);
@@ -347,16 +417,16 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
   applySchemaFromEditor() {
     // Read schema from Monaco editor
-    const value = this.monacoEditorService.getModelEditorValue(this.SCHEMA_MODEL_URI);
-    if (value === undefined) {
+    const schemaStringified = this.form.value.schema_raw;
+    if (schemaStringified === undefined) {
       throw new Error(`Model ${this.SCHEMA_MODEL_URI} is missing.`);
     }
     // Write as validation schema
-    this.useContentsSchema(value);
+    this.useContentsSchema(schemaStringified);
   }
 
   generateSchema() {
-    const existingStringifiedSchema = this.monacoEditorService.getModelEditorValue(this.SCHEMA_MODEL_URI) || '';
+    const existingStringifiedSchema = this.form.value.schema_raw!;
     const isSchemaFilled = (/^(\s)*$/g).test(existingStringifiedSchema);
     if (
       !isSchemaFilled &&
@@ -367,7 +437,7 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
 
     let currentDocumentContents: JSONData;
     try {
-      const stringifiedContents = this.monacoEditorService.getModelEditorValue(this.CONTENTS_MODEL_URI);
+      const stringifiedContents =this.form.value.content_raw!;
       currentDocumentContents = JSON5.parse(stringifiedContents);
     } catch (e: any) {
       e.message = 'Failed, because Document Contents is currently not valid JSON document. Please fix it first. JSON error: ' + e.message;
@@ -384,24 +454,30 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
     fixSchemaBug(schema);
     // Write new chema to editor. Note: It also updates the source of ngModel `this.contentsModel.value`
     const stringifiedGeneratedSchema = JSON.stringify(schema, null, 2);
-    this.monacoEditorService.setModelValue(stringifiedGeneratedSchema, 'json', this.SCHEMA_MODEL_URI);
+    this.form.patchValue({
+      schema_raw: stringifiedGeneratedSchema,
+    });
   }
 
   changeEditorTab(targetTab: 'contents'|'schema'|'notes') {
+    if (!this.editorInstance) {
+      return;
+    }
+
     switch (targetTab) {
       case 'contents':
         if (this.uiTabIndex === 1) {
           this.applySchemaFromEditor();
         }
-        this.monacoEditorService.switchMonacoEditorModel(this.CONTENTS_MODEL_URI, this.savedStates);
+        this.monacoEditorService.switchMonacoEditorModel(this.editorInstance, this.CONTENTS_MODEL_URI, this.savedStates);
         this.uiTabIndex = 0;
         break;
       case 'schema':
-        this.monacoEditorService.switchMonacoEditorModel(this.SCHEMA_MODEL_URI, this.savedStates);
+        this.monacoEditorService.switchMonacoEditorModel(this.editorInstance, this.SCHEMA_MODEL_URI, this.savedStates);
         this.uiTabIndex = 1;
         break;
       case 'notes':
-        this.monacoEditorService.switchMonacoEditorModel(this.NOTES_MODEL_URI, this.savedStates)
+        this.monacoEditorService.switchMonacoEditorModel(this.editorInstance, this.NOTES_MODEL_URI, this.savedStates)
         this.uiTabIndex = 2;
         break;
     }
@@ -412,8 +488,18 @@ export class DocumentEditorComponent implements OnInit, OnDestroy {
    */
   seeNotes() {
     this.changeEditorTab('notes');
-    this.showNotesWarning = false;
+    this.showNotesWarning$.next(false);
     this.cdr.detectChanges();
+  }
+
+  /**
+   * Called by Deactivate guard to decide if editor can be closed.
+   */
+  canExit(): Observable<boolean> | Promise<boolean> | boolean {
+    if (!this.form.dirty) {
+      return true;
+    }
+    return confirm('You have unsaved changes. Discard changes?');
   }
 }
 
@@ -442,7 +528,6 @@ function fixSchemaBug(schema: any): void {
       // /*enable if needed*/ schema.minItems = 1;
     }
   }
-
 }
 
 
