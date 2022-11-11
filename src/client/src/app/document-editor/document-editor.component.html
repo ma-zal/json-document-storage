@@ -143,7 +143,13 @@
         </ul>
 
         <!-- Monaco Editor - for all 3 documents (Contents, Schema, Notes)-->
-        <div #monacoEditorDiv class="code-editor"></div>
+        <app-monaco-document-multi-editor
+          [contentsFormControl]="form.controls.contents_raw"
+          [notesFormControl]="form.controls.notes"
+          [schemaFormControl]="form.controls.schema_raw"
+          (onAfterInit)="onAfterMonacoEditorInit($event)"
+          class="code-editor"
+        ></app-monaco-document-multi-editor>
       </div>
     </div>
   </div>

@@ -6,12 +6,14 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { DocumentEditorComponent } from './document-editor/document-editor.component';
 import { DocumentsListComponent } from './documents-list/documents-list.component';
+import { MonacoDocumentMultiEditorComponent } from './monaco-document-multi-editor/monaco-document-multi-editor.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     DocumentEditorComponent,
-    DocumentsListComponent
+    DocumentsListComponent,
+    MonacoDocumentMultiEditorComponent
   ],
   imports: [
     BrowserModule,
