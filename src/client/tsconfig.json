@@ -16,20 +16,30 @@
     "experimentalDecorators": true,
     "moduleResolution": "node",
     "importHelpers": true,
-    "target": "es2020",
+    "target": "ES2022",
     "module": "es2020",
-    "allowJs": true, // For import of URI of monaco-editor
-    "resolveJsonModule": true, // For import JSON with JSON schema definition
+    "allowJs": true,
+    "resolveJsonModule": true,
     "lib": [
       "ES2021",
       "dom"
     ],
     "paths": {
-      "typeorm": ["./src/shim/typeorm.ts"],
-      "@common/*": ["../common/*"],
-      "@server/*": ["../server/*"]
+      "typeorm": [
+        "./src/shim/typeorm.ts"
+      ],
+      "@common/*": [
+        "../common/*"
+      ],
+      "@server/*": [
+        "../server/*"
+      ]
     },
-    "typeRoots": ["../..node_modules/@types", "./@types"]
+    "typeRoots": [
+      "../..node_modules/@types",
+      "./@types"
+    ],
+    "useDefineForClassFields": false
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

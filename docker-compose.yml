@@ -1,6 +1,6 @@
 services:
   app:
-    image: json-document-storage:latest
+    image: "ghcr.io/ma-zal/json-document-storage:stable"  # or use ":development"
     container_name: json-document-storage
     restart: unless-stopped
     depends_on:
