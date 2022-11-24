@@ -24,19 +24,6 @@ immediately. Requirement to edit/manage something in the app mostly comes from o
 too costly to develop a custom admin page in your app. In this case as fast alternative to admin page in your app it can be
 this JSON Document Storage.
 
-Docker
-------
-
-Application is ready to run in Docker. Just before the first run you need to create `docker-compose.override.yml`
-based on a template stored in the `docker-compose.override.template.yml` file. There you will fill random new database password
-two times and then you can build and run the container by:
-
-```bash
-docker compose build
-docker compose up -d
-docker compose logs
-```
-
 Authorization to management UI / Document change protection
 ------------------------------------------------------------
 
@@ -61,7 +48,53 @@ If 3rd party reverse proxy is being used, you can protect anyhow a document chan
 
  - /api/manage/*
  - /manage/*
- 
+
+Download & run
+--------------
+
+Application is ready to run in Docker.
+
+### Before the first run
+
+Just before the first the `docker-compose.override.yml` file must be created
+based on a template stored in the `docker-compose.override.template.yml` file.
+Be careful that you filled the same random database password on tho places in file.
+
+### Download & run Docker image
+
+You have two options how to get application Docker Image.
+
+1) Clone repository and build the own one:
+
+   ```bash
+   git clone https://github.com/ma-zal/json-document-storage.git
+   cd json-document-storage
+   cp docker-compose.override.template.yml docker-compose.override.yml
+   vi docker-compose.override.yml  # Fill the random DB password (read the section above).
+   docker compose build
+
+   # Run app on background
+   docker compose up -d
+   # See the logs
+   docker compose logs
+   ```
+
+2) Use prebuilded Docker image stored on GitHub:
+
+   ```bash
+   mkdir json-document-storage
+   cd json-document-storage
+   wget https://raw.githubusercontent.com/ma-zal/json-document-storage/master/docker-compose.yml
+   wget --output-document docker-compose.override.yml  https://raw.githubusercontent.com/ma-zal/json-document-storage/master/docker-compose.override.template.yml
+   vi docker-compose.override.yml  # Fill the random DB password (read the section above).
+   docker compose pull
+
+   # Run app on background
+   docker compose up -d
+   # See the logs
+   docker compose logs
+   ```
+
 Local development
 -----------------
 
