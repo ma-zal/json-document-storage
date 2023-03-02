@@ -1,0 +1,34 @@
+name: 'Audit'
+
+on:
+  push:
+    branches: [ "master", "development" ]
+
+jobs:
+  audit-npm:
+    name: 'NPM packages audit'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: 'Yarn audit'
+        run: |
+          audit1_exit_status=0
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          yarn audit >> $GITHUB_STEP_SUMMARY || audit1_exit_status=$?
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ "$audit1_exit_status" -gt "4" ]; then
+            echo "### Found CRITICAL/HIGH/MODERATE VULNERABILITIES in npm dependencies." >> $GITHUB_STEP_SUMMARY;
+            exit $audit1_exit_status;
+          fi
+          if [ "$audit1_exit_status" -gt "0" ]; then
+            echo "### Found low severity vulnerabilities." >> $GITHUB_STEP_SUMMARY;
+            exit $audit1_exit_status;
+          fi
+          exit 0;
