@@ -1,5 +1,5 @@
 import { tap } from 'rxjs';
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { JsonDocumentListItem } from '@common/json-document.type';
 import { JsonDocumentService } from '../json-document.service';
 import { SweetalertService } from '../sweetalert.service';
@@ -14,7 +14,7 @@ export class DocumentsListComponent {
   documents: JsonDocumentListItem[] = [];
 
   constructor(
-    private jsonDocumentService: JsonDocumentService,
+    jsonDocumentService: JsonDocumentService,
     private sweetAlertService: SweetalertService,
   ) {
     this.sweetAlertService.displayBusy({ title: 'Loading ...' });
